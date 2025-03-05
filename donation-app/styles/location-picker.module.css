@@ -1,0 +1,114 @@
+.locationPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.detectLocation {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detectButton {
+  padding: 0.75rem 1.5rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.detectButton:hover {
+  background-color: #1d4ed8;
+}
+
+.detectButton:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.manualInput {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.manualInput h3 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.125rem;
+}
+
+.addressInput {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  width: 100%;
+}
+
+.savedLocations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.savedLocations h3 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.125rem;
+}
+
+.savedLocationsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.savedLocationButton {
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.savedLocationButton:hover {
+  background-color: #f3f4f6;
+}
+
+.savedLocationButton.selected {
+  background-color: #dbeafe;
+  border-color: #2563eb;
+  color: #1e40af;
+}
+
+.selectedLocation {
+  padding: 1rem;
+  background-color: #f3f4f6;
+  border-radius: 0.375rem;
+}
+
+.selectedLocation h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: #1f2937;
+  font-size: 1.125rem;
+}
+
+.selectedLocation p {
+  margin: 0;
+  color: #4b5563;
+}
+
