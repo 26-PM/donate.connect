@@ -26,6 +26,8 @@ const categories = [
 ]
 
 export default function DonatePage() {
+  const [nearestNGO, setNearestNGO] = useState("");
+
   const [step, setStep] = useState(1)
   const [selectedItems, setSelectedItems] = useState<
     Array<{
@@ -411,91 +413,113 @@ export default function DonatePage() {
 
           {/* Step 3: Pickup Location */}
           {step === 3 && (
-            <div className="space-y-6">
-              <div className="bg-muted/50 p-6 rounded-lg space-y-6">
-                <h2 className="text-xl font-semibold mb-4">Enter Pickup Location</h2>
+  <div className="space-y-6">
+    <div className="bg-muted/50 p-6 rounded-lg space-y-6">
+      <h2 className="text-xl font-semibold mb-4">Enter Pickup Location</h2>
+      <div className="space-y-4">
+        <div className="flex justify-between">
+          <Label htmlFor="address">Address</Label>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={() => {
+              if (!navigator.geolocation) {
+                toast({
+                  title: "Geolocation not supported",
+                  description: "Your browser does not support location tracking.",
+                });
+                return;
+              }
+              navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                  const { latitude, longitude } = position.coords;
+                  
+                  const ngos = [
+                    { name: "Goonj", lat: 28.5355, lon: 77.3910 },
+                    { name: "Smile Foundation", lat: 28.6129, lon: 77.2295 },
+                    { name: "Helpage India", lat: 28.5672, lon: 77.2090 },
+                    { name: "Uday Foundation", lat: 28.6448, lon: 77.2167 },
+                    { name: "Prayas", lat: 28.6139, lon: 77.2090 }
+                  ];
+                  
+                  let nearest = ngos[0];
+                  let minDistance = Number.MAX_VALUE;
+                  
+                  ngos.forEach((ngo) => {
+                    const distance = Math.sqrt(
+                      Math.pow(ngo.lat - latitude, 2) + Math.pow(ngo.lon - longitude, 2)
+                    );
+                    if (distance < minDistance) {
+                      minDistance = distance;
+                      nearest = ngo;
+                    }
+                  });
+                  
+                  try {
+                    const response = await fetch(
+                      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+                    );
+                    const data = await response.json();
+                    const locationName = data.display_name || "Unknown Location";
+                    setAddress(locationName);
+                  } catch (error) {
+                    setAddress("Failed to fetch address");
+                  }
+                  
+                  setNearestNGO(nearest.name);
+                  
+                  toast({
+                    title: "Nearest NGO Found",
+                    description: nearest.name,
+                  });
+                },
+                (error) => {
+                  toast({
+                    title: "Location error",
+                    description: error.message,
+                  });
+                }
+              );
+            }}
+          >
+            <MapPin className="mr-1 h-3 w-3" />
+            Use Current Location
+          </Button>
+        </div>
+        <Textarea
+          id="address"
+          placeholder="Enter your full address for pickup"
+          className="min-h-[100px]"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+        />
+        <div className="pt-4">
+          <p className="text-sm text-muted-foreground">
+            Please provide a complete address including building/apartment number, street, city, and postal code.
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <div className="bg-muted/50 p-4 rounded-lg">
+      <h3 className="text-lg font-semibold mb-2">Nearest NGO</h3>
+      <p className="text-sm text-muted-foreground">{nearestNGO}</p>
+    </div>
 
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <Label htmlFor="address">Address</Label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={() => {
-                        if (!navigator.geolocation) {
-                          toast({
-                            title: "Geolocation not supported",
-                            description: "Your browser does not support location tracking.",
-                          });
-                          return;
-                        }
+    <div className="flex justify-between pt-6">
+      <Button variant="outline" onClick={prevStep}>
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back
+      </Button>
+      <Button onClick={nextStep}>
+        Continue <ArrowRight className="ml-2 h-4 w-4" />
+      </Button>
+    </div>
+  </div>
+)}
 
-                        navigator.geolocation.getCurrentPosition(
-                          async (position) => {
-                            const { latitude, longitude } = position.coords;
-                            try {
-                              const response = await fetch(
-                                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-                              );
-                              const data = await response.json();
-                              const location = data.display_name || "Unknown location";
 
-                              setAddress(location);
-
-                              toast({
-                                title: "Location detected",
-                                description: `Your current location has been added: ${location}`,
-                              });
-                            } catch (error) {
-                              toast({
-                                title: "Location error",
-                                description: "Failed to fetch address. Try again.",
-                              });
-                            }
-                          },
-                          (error) => {
-                            toast({
-                              title: "Location error",
-                              description: error.message,
-                            });
-                          }
-                        );
-                      }}
-                    >
-                      <MapPin className="mr-1 h-3 w-3" />
-                      Use Current Location
-                    </Button>
-
-                  </div>
-                  <Textarea
-                    id="address"
-                    placeholder="Enter your full address for pickup"
-                    className="min-h-[100px]"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                  />
-
-                  <div className="pt-4">
-                    <p className="text-sm text-muted-foreground">
-                      Please provide a complete address including building/apartment number, street, city, and postal
-                      code.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-between pt-6">
-                <Button variant="outline" onClick={prevStep}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
-                </Button>
-                <Button onClick={nextStep}>
-                  Continue <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
 
           {/* Step 4: Review & Submit */}
           {step === 4 && (
