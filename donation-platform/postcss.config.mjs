@@ -4,5 +4,4 @@ const config = {
     tailwindcss: {},
   },
 };
-eee
 export default config;
