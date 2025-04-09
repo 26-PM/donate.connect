@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, ArrowRight, Camera, Check, Clock, Gift, MapPin, Plus, Trash2 } from "lucide-react"
+import { ArrowLeft, ArrowRight, Camera, Check, Clock, Gift, MapPin, Plus, Trash2, Heart, Building, Shield } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
+import { Badge } from "@/components/ui/badge"
 
 // Donation categories with icons
 const categories = [
@@ -25,8 +26,61 @@ const categories = [
   { id: "others", name: "Others", icon: "📦" },
 ]
 
+// NGO list with sample data - this would be replaced with real data from backend
+const ngos = [
+  { 
+    id: "ngo1", 
+    name: "Feeding Hope", 
+    logo: "🍽️", 
+    description: "Providing nutritious meals to underprivileged communities",
+    areas: ["Delhi", "Noida", "Ghaziabad"],
+    causes: ["Food", "Nutrition", "Children"] 
+  },
+  { 
+    id: "ngo2", 
+    name: "Clothes for All", 
+    logo: "👚", 
+    description: "Collecting and distributing clothes to those in need",
+    areas: ["Mumbai", "Pune", "Thane"],
+    causes: ["Clothing", "Winter Relief"] 
+  },
+  { 
+    id: "ngo3", 
+    name: "Knowledge Bridge", 
+    logo: "📖", 
+    description: "Making education accessible through book donations",
+    areas: ["Bangalore", "Chennai", "Hyderabad"],
+    causes: ["Education", "Literacy"] 
+  },
+  { 
+    id: "ngo4", 
+    name: "MediCare Trust", 
+    logo: "🏥", 
+    description: "Supporting healthcare access for underserved communities",
+    areas: ["Kolkata", "Bhubaneswar"],
+    causes: ["Healthcare", "Medicine"] 
+  },
+  { 
+    id: "ngo5", 
+    name: "Digital Equality", 
+    logo: "💻", 
+    description: "Bridging the digital divide through tech donations",
+    areas: ["Pune", "Mumbai", "Delhi"],
+    causes: ["Technology", "Education"] 
+  },
+  { 
+    id: "ngo6", 
+    name: "Rural Connect", 
+    logo: "🏘️", 
+    description: "Supporting rural communities with essential supplies",
+    areas: ["UP", "Bihar", "Jharkhand"],
+    causes: ["Rural Development", "Essential Supplies"] 
+  },
+]
+
 export default function DonatePage() {
   const [nearestNGO, setNearestNGO] = useState("");
+  const [selectedNGO, setSelectedNGO] = useState(null);
 
   const [step, setStep] = useState(1)
   const [selectedItems, setSelectedItems] = useState<
@@ -51,6 +105,10 @@ export default function DonatePage() {
 
   const router = useRouter()
   const { toast } = useToast()
+
+  const handleNGOSelect = (ngo) => {
+    setSelectedNGO(ngo);
+  }
 
   const handleAddItem = () => {
     if (!currentItem.category || !currentItem.quantity) {
@@ -118,7 +176,18 @@ export default function DonatePage() {
   }
 
   const nextStep = () => {
-    if (step === 1 && selectedItems.length === 0) {
+    // For new Step 1 (NGO selection)
+    if (step === 1 && !selectedNGO) {
+      toast({
+        title: "No NGO selected",
+        description: "Please select an NGO to donate to",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // For Step 2 (previously Step 1) - Item selection
+    if (step === 2 && selectedItems.length === 0) {
       toast({
         title: "No items selected",
         description: "Please add at least one item to donate",
@@ -127,7 +196,8 @@ export default function DonatePage() {
       return
     }
 
-    if (step === 2 && pickupOption === "scheduled" && (!pickupDate || !pickupTime)) {
+    // For Step 3 (previously Step 2) - Pickup scheduling
+    if (step === 3 && pickupOption === "scheduled" && (!pickupDate || !pickupTime)) {
       toast({
         title: "Missing information",
         description: "Please select a pickup date and time",
@@ -136,7 +206,8 @@ export default function DonatePage() {
       return
     }
 
-    if (step === 3 && !address) {
+    // For Step 4 (previously Step 3) - Address
+    if (step === 4 && !address) {
       toast({
         title: "Missing information",
         description: "Please enter your pickup address",
@@ -177,6 +248,7 @@ export default function DonatePage() {
             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-muted" />
             <ol className="relative z-10 flex justify-between">
               {[
+                { title: "Select NGO", icon: Building },
                 { title: "Select Items", icon: Gift },
                 { title: "Pickup Time", icon: Clock },
                 { title: "Location", icon: MapPin },
@@ -209,8 +281,68 @@ export default function DonatePage() {
             </ol>
           </div>
 
-          {/* Step 1: Select Items */}
+          {/* Step 1: Select NGO */}
           {step === 1 && (
+            <div className="space-y-6">
+              <div className="bg-muted/50 p-6 rounded-lg">
+                <h2 className="text-xl font-semibold mb-4">Choose an NGO to donate to</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {ngos.map((ngo) => (
+                    <Card
+                      key={ngo.id}
+                      className={`cursor-pointer hover:border-primary transition-colors ${
+                        selectedNGO?.id === ngo.id ? "border-primary bg-primary/5" : ""
+                      }`}
+                      onClick={() => handleNGOSelect(ngo)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="text-3xl">{ngo.logo}</div>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start">
+                              <h3 className="font-medium">{ngo.name}</h3>
+                              {selectedNGO?.id === ngo.id && (
+                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary">
+                                  Selected
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">{ngo.description}</p>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {ngo.areas.map((area, index) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  <MapPin className="h-3 w-3 mr-1" />
+                                  {area}
+                                </Badge>
+                              ))}
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {ngo.causes.map((cause, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  <Heart className="h-3 w-3 mr-1" />
+                                  {cause}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-6">
+                <Button onClick={nextStep} disabled={!selectedNGO}>
+                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Select Items (previously Step 1) */}
+          {step === 2 && (
             <div className="space-y-6">
               <div className="bg-muted/50 p-6 rounded-lg">
                 <h2 className="text-xl font-semibold mb-4">What would you like to donate?</h2>
@@ -334,7 +466,11 @@ export default function DonatePage() {
                 </div>
               )}
 
-              <div className="flex justify-end pt-6">
+              <div className="flex justify-between pt-6">
+                <Button variant="outline" onClick={prevStep}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
                 <Button onClick={nextStep} disabled={selectedItems.length === 0}>
                   Continue <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -342,8 +478,8 @@ export default function DonatePage() {
             </div>
           )}
 
-          {/* Step 2: Pickup Date & Time */}
-          {step === 2 && (
+          {/* Step 3: Pickup Date & Time (previously Step 2) */}
+          {step === 3 && (
             <div className="space-y-6">
               <div className="bg-muted/50 p-6 rounded-lg space-y-6">
                 <h2 className="text-xl font-semibold mb-4">Select Pickup Date & Time</h2>
@@ -411,123 +547,135 @@ export default function DonatePage() {
             </div>
           )}
 
-          {/* Step 3: Pickup Location */}
-          {step === 3 && (
-  <div className="space-y-6">
-    <div className="bg-muted/50 p-6 rounded-lg space-y-6">
-      <h2 className="text-xl font-semibold mb-4">Enter Pickup Location</h2>
-      <div className="space-y-4">
-        <div className="flex justify-between">
-          <Label htmlFor="address">Address</Label>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 text-xs"
-            onClick={() => {
-              if (!navigator.geolocation) {
-                toast({
-                  title: "Geolocation not supported",
-                  description: "Your browser does not support location tracking.",
-                });
-                return;
-              }
-              navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                  const { latitude, longitude } = position.coords;
-                  
-                  const ngos = [
-                    { name: "Goonj", lat: 28.5355, lon: 77.3910 },
-                    { name: "Smile Foundation", lat: 28.6129, lon: 77.2295 },
-                    { name: "Helpage India", lat: 28.5672, lon: 77.2090 },
-                    { name: "Uday Foundation", lat: 28.6448, lon: 77.2167 },
-                    { name: "Prayas", lat: 28.6139, lon: 77.2090 }
-                  ];
-                  
-                  let nearest = ngos[0];
-                  let minDistance = Number.MAX_VALUE;
-                  
-                  ngos.forEach((ngo) => {
-                    const distance = Math.sqrt(
-                      Math.pow(ngo.lat - latitude, 2) + Math.pow(ngo.lon - longitude, 2)
-                    );
-                    if (distance < minDistance) {
-                      minDistance = distance;
-                      nearest = ngo;
-                    }
-                  });
-                  
-                  try {
-                    const response = await fetch(
-                      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-                    );
-                    const data = await response.json();
-                    const locationName = data.display_name || "Unknown Location";
-                    setAddress(locationName);
-                  } catch (error) {
-                    setAddress("Failed to fetch address");
-                  }
-                  
-                  setNearestNGO(nearest.name);
-                  
-                  toast({
-                    title: "Nearest NGO Found",
-                    description: nearest.name,
-                  });
-                },
-                (error) => {
-                  toast({
-                    title: "Location error",
-                    description: error.message,
-                  });
-                }
-              );
-            }}
-          >
-            <MapPin className="mr-1 h-3 w-3" />
-            Use Current Location
-          </Button>
-        </div>
-        <Textarea
-          id="address"
-          placeholder="Enter your full address for pickup"
-          className="min-h-[100px]"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-        />
-        <div className="pt-4">
-          <p className="text-sm text-muted-foreground">
-            Please provide a complete address including building/apartment number, street, city, and postal code.
-          </p>
-        </div>
-      </div>
-    </div>
-    
-    <div className="bg-muted/50 p-4 rounded-lg">
-      <h3 className="text-lg font-semibold mb-2">Nearest NGO</h3>
-      <p className="text-sm text-muted-foreground">{nearestNGO}</p>
-    </div>
-
-    <div className="flex justify-between pt-6">
-      <Button variant="outline" onClick={prevStep}>
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
-      </Button>
-      <Button onClick={nextStep}>
-        Continue <ArrowRight className="ml-2 h-4 w-4" />
-      </Button>
-    </div>
-  </div>
-)}
-
-
-
-          {/* Step 4: Review & Submit */}
+          {/* Step 4: Pickup Location (previously Step 3) */}
           {step === 4 && (
+            <div className="space-y-6">
+              <div className="bg-muted/50 p-6 rounded-lg space-y-6">
+                <h2 className="text-xl font-semibold mb-4">Enter Pickup Location</h2>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <Label htmlFor="address">Address</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        if (!navigator.geolocation) {
+                          toast({
+                            title: "Geolocation not supported",
+                            description: "Your browser does not support location tracking.",
+                          });
+                          return;
+                        }
+                        navigator.geolocation.getCurrentPosition(
+                          async (position) => {
+                            const { latitude, longitude } = position.coords;
+                            
+                            const ngos = [
+                              { name: "Goonj", lat: 28.5355, lon: 77.3910 },
+                              { name: "Smile Foundation", lat: 28.6129, lon: 77.2295 },
+                              { name: "Helpage India", lat: 28.5672, lon: 77.2090 },
+                              { name: "Uday Foundation", lat: 28.6448, lon: 77.2167 },
+                              { name: "Prayas", lat: 28.6139, lon: 77.2090 }
+                            ];
+                            
+                            let nearest = ngos[0];
+                            let minDistance = Number.MAX_VALUE;
+                            
+                            ngos.forEach((ngo) => {
+                              const distance = Math.sqrt(
+                                Math.pow(ngo.lat - latitude, 2) + Math.pow(ngo.lon - longitude, 2)
+                              );
+                              if (distance < minDistance) {
+                                minDistance = distance;
+                                nearest = ngo;
+                              }
+                            });
+                            
+                            try {
+                              const response = await fetch(
+                                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+                              );
+                              const data = await response.json();
+                              const locationName = data.display_name || "Unknown Location";
+                              setAddress(locationName);
+                            } catch (error) {
+                              setAddress("Failed to fetch address");
+                            }
+                            
+                            setNearestNGO(nearest.name);
+                            
+                            toast({
+                              title: "Nearest NGO Found",
+                              description: nearest.name,
+                            });
+                          },
+                          (error) => {
+                            toast({
+                              title: "Location error",
+                              description: error.message,
+                            });
+                          }
+                        );
+                      }}
+                    >
+                      <MapPin className="mr-1 h-3 w-3" />
+                      Use Current Location
+                    </Button>
+                  </div>
+                  <Textarea
+                    id="address"
+                    placeholder="Enter your full address for pickup"
+                    className="min-h-[100px]"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                  />
+                  <div className="pt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Please provide a complete address including building/apartment number, street, city, and postal code.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* <div className="bg-muted/50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold mb-2">Nearest NGO</h3>
+                <p className="text-sm text-muted-foreground">{nearestNGO}</p>
+              </div> */}
+
+              <div className="flex justify-between pt-6">
+                <Button variant="outline" onClick={prevStep}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button onClick={nextStep}>
+                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Review & Submit (previously Step 4) */}
+          {step === 5 && (
             <div className="space-y-6">
               <div className="bg-muted/50 p-6 rounded-lg space-y-6">
                 <h2 className="text-xl font-semibold mb-4">Review Your Donation</h2>
 
                 <div className="space-y-4">
+                  {/* Display selected NGO */}
+                  <div>
+                    <h3 className="font-medium mb-2">Selected NGO</h3>
+                    <div className="flex items-center gap-3 border-b pb-3">
+                      <div className="text-2xl">{selectedNGO?.logo}</div>
+                      <div>
+                        <p className="font-medium">{selectedNGO?.name}</p>
+                        <p className="text-sm text-muted-foreground">{selectedNGO?.description}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
                   <div>
                     <h3 className="font-medium mb-2">Items to Donate</h3>
                     <div className="space-y-2">
@@ -582,19 +730,19 @@ export default function DonatePage() {
                         <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">
                           1
                         </div>
-                        <p>Your donation request will be sent to nearby NGOs</p>
+                        <p>Your donation request will be sent to the selected NGO</p>
                       </li>
                       <li className="flex items-start gap-2">
                         <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">
                           2
                         </div>
-                        <p>NGOs will review your donation and accept if they can use the items</p>
+                        <p>The NGO will review your donation and confirm if they can use the items</p>
                       </li>
                       <li className="flex items-start gap-2">
                         <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">
                           3
                         </div>
-                        <p>You'll receive a notification when an NGO accepts your donation</p>
+                        <p>You'll receive a notification when the NGO accepts your donation</p>
                       </li>
                       <li className="flex items-start gap-2">
                         <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">
@@ -603,7 +751,7 @@ export default function DonatePage() {
                         <p>The NGO will arrange pickup according to your preferred time</p>
                       </li>
                     </ol>
-                  </div>
+                    </div>
                 </div>
               </div>
 
@@ -613,7 +761,7 @@ export default function DonatePage() {
                   Back
                 </Button>
                 <Button onClick={handleSubmit} disabled={isLoading}>
-                  {isLoading ? "Submitting..." : "Submit Donation Request"}
+                  {isLoading ? "Submitting..." : "Submit Donation"} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -621,6 +769,6 @@ export default function DonatePage() {
         </div>
       </main>
     </div>
-  )
+  );
 }
-
+                    

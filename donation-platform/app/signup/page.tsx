@@ -158,10 +158,34 @@ export default function SignupPage() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="ngoAddress">NGO Address</Label>
-                        <Input id="ngoAddress" placeholder="123 Charity St, Helptown, HT 12345" required />
-                      </div>
-                      <div className="space-y-2">
+    <Label htmlFor="street">Street</Label>
+    <Input id="street" placeholder="123 Charity St" required />
+  </div>
+  <div className="space-y-2">
+    <Label htmlFor="landmark">Landmark (Optional)</Label>
+    <Input id="landmark" placeholder="Near Central Park" />
+  </div>
+  <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-2">
+      <Label htmlFor="city">City</Label>
+      <Input id="city" placeholder="Helptown" required />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="state">State</Label>
+      <Input id="state" placeholder="Helstate" required />
+    </div>
+  </div>
+  <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-2">
+      <Label htmlFor="country">Country</Label>
+      <Input id="country" placeholder="Country Name" required />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="pincode">Pincode</Label>
+      <Input id="pincode" placeholder="123456" required />
+    </div>
+  </div>
+                      {/* <div className="space-y-2">
                         <Label htmlFor="verificationDoc">Upload NGO Verification Document (Optional)</Label>
                         <div className="flex items-center gap-4">
                           <Button type="button" variant="outline" className="w-full" onClick={() => {}}>
@@ -173,7 +197,7 @@ export default function SignupPage() {
                         <p className="text-xs text-muted-foreground">
                           Upload a PDF or image of your NGO registration certificate (Max 5MB)
                         </p>
-                      </div>
+                      </div> */}
                     </>
                   )}
 

@@ -63,11 +63,11 @@ export default function LandingPage() {
                     Donate Now <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Link href="/ngos">
+                {/* <Link href="/ngos">
                   <Button size="lg" variant="outline">
                     Find NGOs
                   </Button>
-                </Link>
+                </Link> */}
                 <Link href="/signup">
                   <Button size="lg" variant="secondary">
                     Sign Up
