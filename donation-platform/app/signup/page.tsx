@@ -116,20 +116,20 @@ export default function SignupPage() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="firstName">First Name</Label>
-                          <Input id="firstName" placeholder="John" required />
+                          <Input id="firstName" placeholder="Abc" required />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="lastName">Last Name</Label>
-                          <Input id="lastName" placeholder="Doe" required />
+                          <Input id="lastName" placeholder="Xyz" required />
                         </div>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
-                        <Input id="email" type="email" placeholder="john.doe@example.com" required />
+                        <Input id="email" type="email" placeholder="abc@example.com" required />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="phone">Phone Number</Label>
-                        <Input id="phone" type="tel" placeholder="+1 (555) 123-4567" required />
+                        <Input id="phone" type="tel" placeholder="+91 0000000000" required />
                       </div>
                     </>
                   ) : (
