@@ -124,7 +124,7 @@ export default function NgoDashboard() {
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-2">
-          <Link href="/ngo/home">
+          <Link href="/">
             <Button variant="ghost" className="w-full justify-start">
               <Home className="mr-2 h-4 w-4" />
               Home
@@ -136,7 +136,7 @@ export default function NgoDashboard() {
               Dashboard
             </Button>
           </Link>
-          <Link href="/ngo/profile">
+          {/* <Link href="/ngo/profile">
             <Button variant="ghost" className="w-full justify-start">
               <Building className="mr-2 h-4 w-4" />
               NGO Profile
@@ -153,7 +153,7 @@ export default function NgoDashboard() {
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </Button>
-          </Link>
+          </Link> */}
         </nav>
         <div className="border-t p-4">
           <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={handleLogout}>

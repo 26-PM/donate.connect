@@ -1,5 +1,5 @@
 import type React from "react"
-import "@/styles/globals.css"
+import "@/app/globals.css"
 import { Inter } from "next/font/google"
 import { Toaster } from "@/components/ui/toaster"
 
@@ -7,8 +7,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
   title: "DonateConnect - Connect Donors with NGOs",
-  description: "A platform for donors to donate items to nearby NGOs",
-    generator: 'v0.dev'
+  description: "A platform for donors to donate items to nearby NGOs"
 }
 
 export default function RootLayout({
@@ -25,7 +24,3 @@ export default function RootLayout({
     </html>
   )
 }
-
-
-
-import './globals.css'
