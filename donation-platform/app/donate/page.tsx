@@ -1,22 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { 
-  ArrowLeft, ArrowRight, Camera, Check, Clock, Gift, 
-  MapPin, Plus, Trash2, Heart, Building, Shield 
-} from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { ArrowLeft, ArrowRight, Camera, Check, Clock, Gift, MapPin, Plus, Trash2, Heart, Building, Shield } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
 // Donation categories with icons
@@ -29,8 +26,17 @@ const categories = [
   { id: "others", name: "Others", icon: "📦" },
 ]
 
+interface NGO {
+  id: string
+  name: string
+  logo: string
+  description: string
+  areas: string[]
+  causes: string[]
+}
+
 // NGO list with sample data
-const ngos = [
+const ngos: NGO[] = [
   { 
     id: "ngo1", 
     name: "Feeding Hope", 
@@ -38,6 +44,46 @@ const ngos = [
     description: "Providing nutritious meals to underprivileged communities",
     areas: ["Delhi", "Noida", "Ghaziabad"],
     causes: ["Food", "Nutrition", "Children"] 
+  },
+  { 
+    id: "ngo2", 
+    name: "Clothes for All", 
+    logo: "👚", 
+    description: "Collecting and distributing clothes to those in need",
+    areas: ["Mumbai", "Pune", "Thane"],
+    causes: ["Clothing", "Winter Relief"] 
+  },
+  { 
+    id: "ngo3", 
+    name: "Knowledge Bridge", 
+    logo: "📖", 
+    description: "Making education accessible through book donations",
+    areas: ["Bangalore", "Chennai", "Hyderabad"],
+    causes: ["Education", "Literacy"] 
+  },
+  { 
+    id: "ngo4", 
+    name: "MediCare Trust", 
+    logo: "🏥", 
+    description: "Supporting healthcare access for underserved communities",
+    areas: ["Kolkata", "Bhubaneswar"],
+    causes: ["Healthcare", "Medicine"] 
+  },
+  { 
+    id: "ngo5", 
+    name: "Digital Equality", 
+    logo: "💻", 
+    description: "Bridging the digital divide through tech donations",
+    areas: ["Pune", "Mumbai", "Delhi"],
+    causes: ["Technology", "Education"] 
+  },
+  { 
+    id: "ngo6", 
+    name: "Rural Connect", 
+    logo: "🏘️", 
+    description: "Supporting rural communities with essential supplies",
+    areas: ["UP", "Bihar", "Jharkhand"],
+    causes: ["Rural Development", "Essential Supplies"] 
   },
 ]
 
@@ -54,12 +100,10 @@ export default function DonatePage() {
   const ngoId = searchParams.get('ngoId')
   const { toast } = useToast()
 
-  const [nearestNGO, setNearestNGO] = useState("")
-const [selectedNGO, setSelectedNGO] = useState<typeof ngos[0] | null>(() => {
-    console.log('Finding NGO for id:', ngoId)
+  const [selectedNGO, setSelectedNGO] = useState<NGO | null>(() => {
     return ngoId ? ngos.find(ngo => ngo.id === ngoId) || null : null
   })
-  const [step, setStep] = useState(selectedNGO ? 2 : 1)
+  const [step, setStep] = useState(1)
   const [selectedItems, setSelectedItems] = useState<DonationItem[]>([])
   const [currentItem, setCurrentItem] = useState<DonationItem>({
     category: "",
@@ -72,236 +116,578 @@ const [selectedNGO, setSelectedNGO] = useState<typeof ngos[0] | null>(() => {
   const [pickupOption, setPickupOption] = useState("scheduled")
   const [address, setAddress] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null)
 
-  if (!selectedNGO && step === 1) {
+  if (!selectedNGO) {
     router.push("/donor/ngos")
     return null
   }
 
+  const handleAddItem = () => {
+    if (!currentItem.category || !currentItem.quantity) {
+      toast({
+        title: "Missing information",
+        description: "Please select a category and specify quantity",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setSelectedItems([...selectedItems, { ...currentItem }])
+    setCurrentItem({
+      category: "",
+      quantity: "",
+      description: "",
+      images: [],
+    })
+  }
+
+  const handleRemoveItem = (index: number) => {
+    const updatedItems = [...selectedItems]
+    updatedItems.splice(index, 1)
+    setSelectedItems(updatedItems)
+  }
+
+  const handleImageUpload = async () => {
+    try {
+      setImageUploadError(null)
+      // In a real app, this would be an actual file upload
+      const newImages = [...currentItem.images]
+      newImages.push(`/placeholder.svg?height=200&width=200&text=Image+${currentItem.images.length + 1}`)
+      setCurrentItem({ ...currentItem, images: newImages })
+    } catch (error) {
+      setImageUploadError("Failed to upload image. Please try again.")
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (selectedItems.length === 0) {
+      toast({
+        title: "No items selected",
+        description: "Please add at least one item to donate",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+
+      toast({
+        title: "Donation request submitted!",
+        description: "NGOs in your area have been notified of your donation.",
+      })
+
+      router.push("/donor/dashboard")
+    } catch (error) {
+      toast({
+        title: "Submission failed",
+        description: "An error occurred while submitting your donation request. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const nextStep = () => {
+    if (step === 1 && selectedItems.length === 0) {
+      toast({
+        title: "No items selected",
+        description: "Please add at least one item to donate",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (step === 2 && pickupOption === "scheduled" && (!pickupDate || !pickupTime)) {
+      toast({
+        title: "Missing information",
+        description: "Please select a pickup date and time",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (step === 3 && !address) {
+      toast({
+        title: "Missing information",
+        description: "Please enter your pickup address",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setStep(step + 1)
+  }
+
+  const prevStep = () => {
+    setStep(step - 1)
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" onClick={() => router.back()}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back
-          </Button>
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
+        <div className="container flex h-16 items-center">
+          <Link href="/donor/dashboard" className="flex items-center gap-2 font-bold">
+            <Gift className="h-6 w-6 text-primary" />
+            <span>DonateConnect</span>
+          </Link>
         </div>
+      </header>
 
-        {selectedNGO && (
-          <Card className="mb-8">
-            <CardHeader>
-              <div className="flex items-center gap-4">
-                <div className="text-4xl">{selectedNGO.logo}</div>
-                <div>
-                  <CardTitle>{selectedNGO.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedNGO.description}
+      <main className="container py-10">
+        <div className="max-w-3xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold tracking-tight mb-2">Make a Donation</h1>
+            <p className="text-muted-foreground">
+              Fill in the details about your donation for {selectedNGO.name}
                   </p>
                 </div>
-              </div>
-            </CardHeader>
-          </Card>
-        )}
 
-        <div className="grid gap-8 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Donation Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <Label>Category</Label>
-                  <Select
-                    value={currentItem.category}
-                    onValueChange={(value) => setCurrentItem({...currentItem, category: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.icon} {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          {/* Progress Steps */}
+          <div className="relative mb-10">
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-muted" />
+            <ol className="relative z-10 flex justify-between">
+              {[
+                { title: "Select Items", icon: Gift },
+                { title: "Pickup Time", icon: Clock },
+                { title: "Location", icon: MapPin },
+                { title: "Review", icon: Check },
+              ].map((s, i) => {
+                const StepIcon = s.icon
+                const isActive = i + 1 === step
+                const isCompleted = i + 1 < step
 
-                <div>
-                  <Label>Quantity</Label>
-                  <Input
-                    type="number"
-                    value={currentItem.quantity}
-                    onChange={(e) => setCurrentItem({...currentItem, quantity: e.target.value})}
-                    placeholder="How many items?"
-                  />
-                </div>
-
-                <div>
-                  <Label>Description</Label>
-                  <Textarea
-                    value={currentItem.description}
-                    onChange={(e) => setCurrentItem({...currentItem, description: e.target.value})}
-                    placeholder="Item details (condition, specifications, etc.)"
-                  />
-                </div>
-
-                <div>
-                  <Label>Images (optional)</Label>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
-                      <Camera className="mr-2 h-4 w-4" />
-                      Add Photos
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      {currentItem.images.length} selected
+                return (
+                  <li key={i} className="flex flex-col items-center">
+                    <div
+                      className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                        isActive
+                          ? "bg-primary text-primary-foreground"
+                          : isCompleted
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {isCompleted ? <Check className="h-5 w-5" /> : <StepIcon className="h-5 w-5" />}
+                    </div>
+                    <span
+                      className={`mt-2 text-xs ${
+                        isActive || isCompleted ? "font-medium" : "text-muted-foreground"
+                      }`}
+                    >
+                      {s.title}
                     </span>
+                  </li>
+                )
+              })}
+            </ol>
+              </div>
+
+          {/* Step 1: Select Items */}
+          {step === 1 && (
+            <div className="space-y-6">
+              <div className="bg-muted/50 p-6 rounded-lg">
+                <h2 className="text-xl font-semibold mb-4">What would you like to donate?</h2>
+
+                {/* Category Selection */}
+              <div className="space-y-4">
+                  <Label>Select Category</Label>
+                  <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+                    {categories.map((category) => (
+                      <Card
+                        key={category.id}
+                        className={`text-center cursor-pointer hover:border-primary transition-colors ${
+                          currentItem.category === category.id ? "border-primary bg-primary/5" : ""
+                        }`}
+                        onClick={() => setCurrentItem({ ...currentItem, category: category.id })}
+                      >
+                        <CardContent className="p-4">
+                          <div className="text-3xl mb-2">{category.icon}</div>
+                          <p className="text-sm font-medium">{category.name}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 </div>
 
-                <Button
-                  onClick={() => {
-                    if (!currentItem.category || !currentItem.quantity) {
-                      toast({
-                        title: "Missing required fields",
-                        description: "Please select category and enter quantity",
-                        variant: "destructive"
-                      })
-                      return
-                    }
-                    setSelectedItems([...selectedItems, currentItem])
-                    setCurrentItem({
-                      category: "",
-                      quantity: "",
-                      description: "",
-                      images: []
-                    })
-                  }}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Item
+                {/* Item Details */}
+                {currentItem.category && (
+                  <div className="mt-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="quantity">Quantity</Label>
+                  <Input
+                          id="quantity"
+                          placeholder="e.g., 5 shirts, 2kg rice"
+                    value={currentItem.quantity}
+                          onChange={(e) => setCurrentItem({ ...currentItem, quantity: e.target.value })}
+                  />
+                </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="description">Description (Optional)</Label>
+                        <Input
+                          id="description"
+                          placeholder="e.g., Men's shirts, size L"
+                    value={currentItem.description}
+                          onChange={(e) => setCurrentItem({ ...currentItem, description: e.target.value })}
+                  />
+                </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Upload Images (Optional)</Label>
+                      <div className="flex flex-wrap gap-4">
+                        {currentItem.images.map((image, index) => (
+                          <div key={index} className="relative w-24 h-24 border rounded">
+                            <img
+                              src={image || "/placeholder.svg"}
+                              alt="Donation item"
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
+                              onClick={() => {
+                                const newImages = [...currentItem.images]
+                                newImages.splice(index, 1)
+                                setCurrentItem({ ...currentItem, images: newImages })
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          className="w-24 h-24 border border-dashed rounded flex flex-col items-center justify-center text-muted-foreground hover:text-foreground"
+                          onClick={handleImageUpload}
+                        >
+                          <Camera className="h-6 w-6 mb-1" />
+                          <span className="text-xs">Add Photo</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <Button onClick={handleAddItem} className="w-full">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Item
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Selected Items */}
+              {selectedItems.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="font-medium">Selected Items ({selectedItems.length})</h3>
+                  <div className="space-y-3">
+                    {selectedItems.map((item, index) => {
+                      const category = categories.find((c) => c.id === item.category)
+
+                      return (
+                        <div key={index} className="flex items-center justify-between border rounded-lg p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="text-2xl">{category?.icon}</div>
+                <div>
+                              <p className="font-medium">{category?.name}</p>
+                              <p className="text-sm text-muted-foreground">{item.quantity}</p>
+                              {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(index)}>
+                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <div className="pt-4">
+                    <Button onClick={() => setCurrentItem({ category: "", quantity: "", description: "", images: [] })}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add More Items
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-between pt-6">
+                <Button variant="outline" onClick={() => router.push(`/donor/ngos/${selectedNGO.id}`)}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to NGO
+                </Button>
+                <Button onClick={nextStep} disabled={selectedItems.length === 0}>
+                  Continue <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Pickup Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+          {/* Step 2: Pickup Date & Time */}
+          {step === 2 && (
+            <div className="space-y-6">
+              <div className="bg-muted/50 p-6 rounded-lg space-y-6">
+                <h2 className="text-xl font-semibold mb-4">Select Pickup Date & Time</h2>
+
                 <RadioGroup
+                  defaultValue="scheduled"
                   value={pickupOption}
                   onValueChange={setPickupOption}
-                  className="grid gap-4 md:grid-cols-2"
+                  className="space-y-4"
                 >
-                  <div>
-                    <RadioGroupItem value="scheduled" id="scheduled" className="peer sr-only" />
-                    <Label
-                      htmlFor="scheduled"
-                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                    >
-                      <Clock className="mb-2 h-6 w-6" />
-                      Scheduled Pickup
-                    </Label>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="scheduled" id="scheduled" />
+                    <Label htmlFor="scheduled">Schedule a specific date & time</Label>
                   </div>
-                  <div>
-                    <RadioGroupItem value="dropoff" id="dropoff" className="peer sr-only" />
-                    <Label
-                      htmlFor="dropoff"
-                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                    >
-                      <MapPin className="mb-2 h-6 w-6" />
-                      Drop Off
-                    </Label>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="asap" id="asap" />
+                    <Label htmlFor="asap">As soon as possible</Label>
                   </div>
                 </RadioGroup>
 
                 {pickupOption === "scheduled" && (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <Label>Pickup Date</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Preferred Date</Label>
                       <Input
+                        id="date"
                         type="date"
                         value={pickupDate}
                         onChange={(e) => setPickupDate(e.target.value)}
+                        min={new Date().toISOString().split("T")[0]}
                       />
                     </div>
-                    <div>
-                      <Label>Pickup Time</Label>
-                      <Input
-                        type="time"
-                        value={pickupTime}
-                        onChange={(e) => setPickupTime(e.target.value)}
-                      />
+                    <div className="space-y-2">
+                      <Label htmlFor="time">Preferred Time</Label>
+                      <Select value={pickupTime} onValueChange={setPickupTime}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select time slot" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="morning">Morning (9 AM - 12 PM)</SelectItem>
+                          <SelectItem value="afternoon">Afternoon (12 PM - 3 PM)</SelectItem>
+                          <SelectItem value="evening">Evening (3 PM - 6 PM)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 )}
 
-                <div>
-                  <Label>Address</Label>
+                <div className="pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Note: The actual pickup time will be confirmed by the NGO after they accept your donation request.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-between pt-6">
+                <Button variant="outline" onClick={prevStep}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button onClick={nextStep}>
+                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Pickup Location */}
+          {step === 3 && (
+            <div className="space-y-6">
+              <div className="bg-muted/50 p-6 rounded-lg space-y-6">
+                <h2 className="text-xl font-semibold mb-4">Enter Pickup Location</h2>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <Label htmlFor="address">Address</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        if (!navigator.geolocation) {
+                          toast({
+                            title: "Geolocation not supported",
+                            description: "Your browser does not support location tracking.",
+                          });
+                          return;
+                        }
+                        navigator.geolocation.getCurrentPosition(
+                          async (position) => {
+                            const { latitude, longitude } = position.coords;
+                            
+                            try {
+                              const response = await fetch(
+                                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+                              );
+                              const data = await response.json();
+                              const locationName = data.display_name || "Unknown Location";
+                              setAddress(locationName);
+                            } catch (error) {
+                              setAddress("Failed to fetch address");
+                            }
+                          },
+                          (error) => {
+                            toast({
+                              title: "Location error",
+                              description: error.message,
+                            });
+                          }
+                        );
+                      }}
+                    >
+                      <MapPin className="mr-1 h-3 w-3" />
+                      Use Current Location
+                    </Button>
+                  </div>
                   <Textarea
+                    id="address"
+                    placeholder="Enter your full address for pickup"
+                    className="min-h-[100px]"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Where should we pickup the items?"
                   />
+                  <div className="pt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Please provide a complete address including building/apartment number, street, city, and postal code.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-between pt-6">
+                <Button variant="outline" onClick={prevStep}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button onClick={nextStep}>
+                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Review & Submit */}
+          {step === 4 && (
+            <div className="space-y-6">
+              <div className="bg-muted/50 p-6 rounded-lg space-y-6">
+                <h2 className="text-xl font-semibold mb-4">Review Your Donation</h2>
+
+                <div className="space-y-4">
+                  {/* Display selected NGO */}
+                  <div>
+                    <h3 className="font-medium mb-2">Selected NGO</h3>
+                    <div className="flex items-center gap-3 border-b pb-3">
+                      <div className="text-2xl">{selectedNGO.logo}</div>
+                      <div>
+                        <p className="font-medium">{selectedNGO.name}</p>
+                        <p className="text-sm text-muted-foreground">{selectedNGO.description}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h3 className="font-medium mb-2">Items to Donate</h3>
+                    <div className="space-y-2">
+                      {selectedItems.map((item, index) => {
+                        const category = categories.find((c) => c.id === item.category)
+
+                        return (
+                          <div key={index} className="flex items-center gap-3 border-b pb-2">
+                            <div className="text-xl">{category?.icon}</div>
+                            <div>
+                              <p className="font-medium">{category?.name}</p>
+                              <p className="text-sm text-muted-foreground">{item.quantity}</p>
+                              {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                 </div>
 
                 <Separator />
 
+                  <div>
+                    <h3 className="font-medium mb-2">Pickup Details</h3>
                 <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Items to donate:</span>
-                    <span>{selectedItems.length}</span>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <p>
+                          {pickupOption === "asap"
+                            ? "As soon as possible"
+                            : `${new Date(pickupDate).toLocaleDateString()} - ${pickupTime === "morning"
+                              ? "Morning (9 AM - 12 PM)"
+                              : pickupTime === "afternoon"
+                                ? "Afternoon (12 PM - 3 PM)"
+                                : "Evening (3 PM - 6 PM)"
+                            }`}
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <p>{address}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between font-medium">
-                    <span>Total</span>
-                    <span>
-                      {selectedItems.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0)} items
-                    </span>
+
+                  <Separator />
+
+                  <div>
+                    <h3 className="font-medium mb-2">What happens next?</h3>
+                    <ol className="space-y-2 text-sm">
+                      <li className="flex items-start gap-2">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">
+                          1
+                        </div>
+                        <p>Your donation request will be sent to the selected NGO</p>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">
+                          2
+                        </div>
+                        <p>The NGO will review your donation and confirm if they can use the items</p>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">
+                          3
+                        </div>
+                        <p>You'll receive a notification when the NGO accepts your donation</p>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">
+                          4
+                        </div>
+                        <p>The NGO will arrange pickup according to your preferred time</p>
+                      </li>
+                    </ol>
+                  </div>
                   </div>
                 </div>
 
-                <Button
-                  className="w-full"
-                  size="lg"
-                  disabled={isLoading || selectedItems.length === 0}
-                  onClick={async () => {
-                    setIsLoading(true)
-                    try {
-                      // TODO: Implement actual donation submission
-                      await new Promise(resolve => setTimeout(resolve, 1000))
-                      toast({
-                        title: "Donation scheduled!",
-                        description: "Thank you for your generosity",
-                      })
-                      router.push("/donor/dashboard")
-                    } catch (error) {
-                      toast({
-                        title: "Error",
-                        description: "Failed to schedule donation",
-                        variant: "destructive"
-                      })
-                    } finally {
-                      setIsLoading(false)
-                    }
-                  }}
-                >
-                  {isLoading ? (
-                    <Clock className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Gift className="mr-2 h-4 w-4" />
-                  )}
-                  Schedule Donation
+              <div className="flex justify-between pt-6">
+                <Button variant="outline" onClick={prevStep}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button onClick={handleSubmit} disabled={isLoading}>
+                  {isLoading ? "Submitting..." : "Submit Donation"} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   )
 }

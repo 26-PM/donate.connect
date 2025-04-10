@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { ArrowRight, Gift, Package, Clock, MapPin, CheckCircle } from "lucide-react"
 
@@ -7,27 +9,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 export default function DonorHomePage() {
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2 font-bold">
-            <Gift className="h-6 w-6 text-primary" />
-            <span>DonateConnect</span>
-          </div>
-          <nav className="hidden md:flex gap-6">
-            <Link href="/donor/dashboard" className="text-sm font-medium hover:text-primary">
-              Dashboard
-            </Link>
-            <Link href="/donor/donations" className="text-sm font-medium hover:text-primary">
-              My Donations
-            </Link>
-            <Link href="/donor/profile" className="text-sm font-medium hover:text-primary">
-              Profile
-            </Link>
-          </nav>
-          <Button variant="ghost">Logout</Button>
-        </div>
-      </header>
-
       <main className="container py-10">
         <section className="mb-12">
           <div className="flex flex-col items-center text-center space-y-4 mb-10">
