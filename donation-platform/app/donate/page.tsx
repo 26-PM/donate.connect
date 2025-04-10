@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, ArrowRight, Camera, Check, Clock, Gift, MapPin, Plus, Trash2, Heart, Building, Shield } from "lucide-react"
+import { ArrowLeft, ArrowRight, Camera, Check, Clock, Gift, MapPin, Plus, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import axios from "axios"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,7 +14,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
 
 // Donation categories with icons
 const categories = [
@@ -24,67 +23,6 @@ const categories = [
   { id: "medicines", name: "Medicines", icon: "💊" },
   { id: "electronics", name: "Electronics", icon: "📱" },
   { id: "others", name: "Others", icon: "📦" },
-]
-
-interface NGO {
-  id: string
-  name: string
-  logo: string
-  description: string
-  areas: string[]
-  causes: string[]
-}
-
-// NGO list with sample data
-const ngos: NGO[] = [
-  { 
-    id: "ngo1", 
-    name: "Feeding Hope", 
-    logo: "🍽️", 
-    description: "Providing nutritious meals to underprivileged communities",
-    areas: ["Delhi", "Noida", "Ghaziabad"],
-    causes: ["Food", "Nutrition", "Children"] 
-  },
-  { 
-    id: "ngo2", 
-    name: "Clothes for All", 
-    logo: "👚", 
-    description: "Collecting and distributing clothes to those in need",
-    areas: ["Mumbai", "Pune", "Thane"],
-    causes: ["Clothing", "Winter Relief"] 
-  },
-  { 
-    id: "ngo3", 
-    name: "Knowledge Bridge", 
-    logo: "📖", 
-    description: "Making education accessible through book donations",
-    areas: ["Bangalore", "Chennai", "Hyderabad"],
-    causes: ["Education", "Literacy"] 
-  },
-  { 
-    id: "ngo4", 
-    name: "MediCare Trust", 
-    logo: "🏥", 
-    description: "Supporting healthcare access for underserved communities",
-    areas: ["Kolkata", "Bhubaneswar"],
-    causes: ["Healthcare", "Medicine"] 
-  },
-  { 
-    id: "ngo5", 
-    name: "Digital Equality", 
-    logo: "💻", 
-    description: "Bridging the digital divide through tech donations",
-    areas: ["Pune", "Mumbai", "Delhi"],
-    causes: ["Technology", "Education"] 
-  },
-  { 
-    id: "ngo6", 
-    name: "Rural Connect", 
-    logo: "🏘️", 
-    description: "Supporting rural communities with essential supplies",
-    areas: ["UP", "Bihar", "Jharkhand"],
-    causes: ["Rural Development", "Essential Supplies"] 
-  },
 ]
 
 interface DonationItem {
@@ -100,9 +38,6 @@ export default function DonatePage() {
   const ngoId = searchParams.get('ngoId')
   const { toast } = useToast()
 
-  const [selectedNGO, setSelectedNGO] = useState<NGO | null>(() => {
-    return ngoId ? ngos.find(ngo => ngo.id === ngoId) || null : null
-  })
   const [step, setStep] = useState(1)
   const [selectedItems, setSelectedItems] = useState<DonationItem[]>([])
   const [currentItem, setCurrentItem] = useState<DonationItem>({
@@ -118,10 +53,12 @@ export default function DonatePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [imageUploadError, setImageUploadError] = useState<string | null>(null)
 
-  if (!selectedNGO) {
-    router.push("/donor/ngos")
-    return null
-  }
+  useEffect(() => {
+    if (!ngoId) {
+      router.push("/donor/ngos")
+      return
+    }
+  }, [ngoId, router])
 
   const handleAddItem = () => {
     if (!currentItem.category || !currentItem.quantity) {
@@ -178,12 +115,25 @@ export default function DonatePage() {
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const donationData = {
+        ngo: ngoId,
+        items: selectedItems.map(item => ({
+          itemName: item.category,
+          quantity: parseInt(item.quantity),
+          description: item.description,
+          images: item.images
+        })),
+        pickupOption,
+        pickupDate: pickupOption === "scheduled" ? pickupDate : null,
+        pickupTime: pickupOption === "scheduled" ? pickupTime : null,
+        address
+      }
+
+      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations`, donationData)
 
       toast({
         title: "Donation request submitted!",
-        description: "NGOs in your area have been notified of your donation.",
+        description: "The NGO will contact you soon to arrange pickup.",
       })
 
       router.push("/donor/dashboard")
@@ -237,10 +187,10 @@ export default function DonatePage() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
         <div className="container flex h-16 items-center">
-          <Link href="/donor/dashboard" className="flex items-center gap-2 font-bold">
-            <Gift className="h-6 w-6 text-primary" />
-            <span>DonateConnect</span>
-          </Link>
+          <Button variant="ghost" onClick={() => router.push("/donor/ngos")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to NGOs
+          </Button>
         </div>
       </header>
 
@@ -249,9 +199,9 @@ export default function DonatePage() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold tracking-tight mb-2">Make a Donation</h1>
             <p className="text-muted-foreground">
-              Fill in the details about your donation for {selectedNGO.name}
-                  </p>
-                </div>
+              Fill in the details about your donation
+            </p>
+          </div>
 
           {/* Progress Steps */}
           <div className="relative mb-10">
@@ -291,7 +241,7 @@ export default function DonatePage() {
                 )
               })}
             </ol>
-              </div>
+          </div>
 
           {/* Step 1: Select Items */}
           {step === 1 && (
@@ -300,7 +250,7 @@ export default function DonatePage() {
                 <h2 className="text-xl font-semibold mb-4">What would you like to donate?</h2>
 
                 {/* Category Selection */}
-              <div className="space-y-4">
+                <div className="space-y-4">
                   <Label>Select Category</Label>
                   <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
                     {categories.map((category) => (
@@ -326,22 +276,22 @@ export default function DonatePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="quantity">Quantity</Label>
-                  <Input
+                        <Input
                           id="quantity"
                           placeholder="e.g., 5 shirts, 2kg rice"
-                    value={currentItem.quantity}
+                          value={currentItem.quantity}
                           onChange={(e) => setCurrentItem({ ...currentItem, quantity: e.target.value })}
-                  />
-                </div>
+                        />
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="description">Description (Optional)</Label>
                         <Input
                           id="description"
                           placeholder="e.g., Men's shirts, size L"
-                    value={currentItem.description}
+                          value={currentItem.description}
                           onChange={(e) => setCurrentItem({ ...currentItem, description: e.target.value })}
-                  />
-                </div>
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -396,7 +346,7 @@ export default function DonatePage() {
                         <div key={index} className="flex items-center justify-between border rounded-lg p-4">
                           <div className="flex items-center gap-3">
                             <div className="text-2xl">{category?.icon}</div>
-                <div>
+                            <div>
                               <p className="font-medium">{category?.name}</p>
                               <p className="text-sm text-muted-foreground">{item.quantity}</p>
                               {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
@@ -419,11 +369,7 @@ export default function DonatePage() {
                 </div>
               )}
 
-              <div className="flex justify-between pt-6">
-                <Button variant="outline" onClick={() => router.push(`/donor/ngos/${selectedNGO.id}`)}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to NGO
-                </Button>
+              <div className="flex justify-end pt-6">
                 <Button onClick={nextStep} disabled={selectedItems.length === 0}>
                   Continue <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -582,20 +528,6 @@ export default function DonatePage() {
                 <h2 className="text-xl font-semibold mb-4">Review Your Donation</h2>
 
                 <div className="space-y-4">
-                  {/* Display selected NGO */}
-                  <div>
-                    <h3 className="font-medium mb-2">Selected NGO</h3>
-                    <div className="flex items-center gap-3 border-b pb-3">
-                      <div className="text-2xl">{selectedNGO.logo}</div>
-                      <div>
-                        <p className="font-medium">{selectedNGO.name}</p>
-                        <p className="text-sm text-muted-foreground">{selectedNGO.description}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
                   <div>
                     <h3 className="font-medium mb-2">Items to Donate</h3>
                     <div className="space-y-2">
@@ -614,13 +546,13 @@ export default function DonatePage() {
                         )
                       })}
                     </div>
-                </div>
+                  </div>
 
-                <Separator />
+                  <Separator />
 
                   <div>
                     <h3 className="font-medium mb-2">Pickup Details</h3>
-                <div className="space-y-2">
+                    <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <p>
@@ -628,7 +560,7 @@ export default function DonatePage() {
                             ? "As soon as possible"
                             : `${new Date(pickupDate).toLocaleDateString()} - ${pickupTime === "morning"
                               ? "Morning (9 AM - 12 PM)"
-                              : pickupTime === "afternoon"
+                              : pickupOption === "afternoon"
                                 ? "Afternoon (12 PM - 3 PM)"
                                 : "Evening (3 PM - 6 PM)"
                             }`}
@@ -672,8 +604,8 @@ export default function DonatePage() {
                       </li>
                     </ol>
                   </div>
-                  </div>
                 </div>
+              </div>
 
               <div className="flex justify-between pt-6">
                 <Button variant="outline" onClick={prevStep}>

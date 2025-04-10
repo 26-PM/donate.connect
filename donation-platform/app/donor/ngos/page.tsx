@@ -33,7 +33,8 @@ export default function NGOsPage() {
     const fetchNgos = async () => {
       try {
         const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/ngos`)
-        setNgos(res.data.ngos || []) // assuming your backend sends { ngos: [...] }
+        setNgos(res.data.data || []) // assuming your backend sends { ngos: [...] }
+        console.log(res.data.data)
       } catch (err) {
         console.error("Failed to fetch NGOs:", err)
       }
@@ -90,11 +91,15 @@ export default function NGOsPage() {
                 <span>Reg. No: {ngo.registrationNumber}</span>
               </div>
             </CardContent>
-            <CardFooter>
-              <Button className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors" asChild>
-                <Link href={`/donor/ngos/${ngo.id}`} className="flex items-center justify-center">
+            <CardFooter className="flex justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                <span>{ngo.location}</span>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/donor/ngos/${ngo._id}`}>
                   View Details
-                  <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  <ChevronRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
             </CardFooter>
