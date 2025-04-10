@@ -31,10 +31,8 @@ export default function NGOsPage() {
 
   useEffect(() => {
     const fetchNgos = async () => {
-      console.log("4refd")
       try {
         const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/ngos`)
-        console.log(res.data)
         setNgos(res.data.ngos || []) // assuming your backend sends { ngos: [...] }
       } catch (err) {
         console.error("Failed to fetch NGOs:", err)

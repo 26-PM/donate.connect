@@ -32,7 +32,6 @@ export default function LoginPage() {
     const password = formData.get("password") as string
   
     const loginData = { email, password }
-    console.log(API_BASE_URL)
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/login`, loginData, {
         withCredentials: true,

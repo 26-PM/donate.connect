@@ -11,8 +11,8 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  // origin: 'http://localhost:3000',
-  origin: true,
+  origin: 'http://localhost:3000',
+  // origin: true,
   credentials: true // if you plan to send cookies/auth headers
 }));
 
@@ -21,6 +21,9 @@ app.use("/api/auth", authRoutes);
 
 const donationRoutes = require("./Routes/donation");
 app.use("/api/donations", donationRoutes);
+
+const userSideRoutes = require("./Routes/userSideRoutes");
+app.use("/api/user", userSideRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
