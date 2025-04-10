@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+
 import {
   Bell,
   Building,
@@ -23,12 +25,26 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+import axios from "axios";
 
 export default function NgoDashboard() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState("available")
   const { toast } = useToast()
 
   // Mock data for donations
+  const handleLogout = async () => {
+      try {
+        await axios.get(`${API_BASE_URL}/api/auth/logout`, {
+          withCredentials: true,
+        })
+        router.push("/login")
+      } catch (err) {
+        console.error("Logout failed:", err)
+      }
+  }
+  
   const availableDonations = [
     {
       id: "DON-005",
@@ -140,7 +156,7 @@ export default function NgoDashboard() {
           </Link>
         </nav>
         <div className="border-t p-4">
-          <Button variant="ghost" className="w-full justify-start text-muted-foreground">
+          <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             Logout
           </Button>

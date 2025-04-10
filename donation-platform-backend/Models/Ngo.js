@@ -33,12 +33,12 @@ const ngoSchema = new mongoose.Schema(
     mobile: {
       type: String,
       required: [true, "Mobile number is required"],
-      validate: {
-        validator: function (value) {
-          return validator.isMobilePhone(value, "en-IN") && value.length === 10;
-        },
-        message: "Enter a valid 10-digit Indian mobile number",
-      },
+      // validate: {
+      //   validator: function (value) {
+      //     return validator.isMobilePhone(value, "en-IN") && value.length === 10;
+      //   },
+      //   message: "Enter a valid 10-digit Indian mobile number",
+      // },
     },
     address: {
       streetNumber: {
@@ -47,7 +47,7 @@ const ngoSchema = new mongoose.Schema(
       },
       landmark: {
         type: String,
-        required: true,
+        // required: true,
       },
       city: {
         type: String,

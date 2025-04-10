@@ -2,17 +2,46 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowRight, Calendar, Gift, Home, LogOut, Package, Settings, User, CheckCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
+import axios from "axios"
+import {
+  ArrowRight,
+  Calendar,
+  Gift,
+  Home,
+  LogOut,
+  Package,
+  CheckCircle,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function DonorDashboard() {
   const [activeTab, setActiveTab] = useState("pending")
+  const router = useRouter()
 
-  // Mock data for donations
+  const handleLogout = async () => {
+    try {
+      await axios.get(`${API_BASE_URL}/api/auth/logout`, {
+        withCredentials: true,
+      })
+      router.push("/login")
+    } catch (err) {
+      console.error("Logout failed:", err)
+    }
+  }
+
   const pendingDonations = [
     {
       id: "DON-001",
@@ -78,21 +107,13 @@ export default function DonorDashboard() {
               Dashboard
             </Button>
           </Link>
-          {/* <Link href="/donor/profile">
-            <Button variant="ghost" className="w-full justify-start">
-              <User className="mr-2 h-4 w-4" />
-              Profile
-            </Button>
-          </Link>
-          <Link href="/donor/settings">
-            <Button variant="ghost" className="w-full justify-start">
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
-            </Button>
-          </Link> */}
         </nav>
         <div className="border-t p-4">
-          <Button variant="ghost" className="w-full justify-start text-muted-foreground">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-muted-foreground"
+            onClick={handleLogout}
+          >
             <LogOut className="mr-2 h-4 w-4" />
             Logout
           </Button>
@@ -142,7 +163,9 @@ export default function DonorDashboard() {
                 <CardTitle className="text-sm font-medium">Total Donations</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{pendingDonations.length + completedDonations.length}</div>
+                <div className="text-3xl font-bold">
+                  {pendingDonations.length + completedDonations.length}
+                </div>
                 <p className="text-xs text-muted-foreground">+2 from last month</p>
               </CardContent>
             </Card>
@@ -307,4 +330,3 @@ export default function DonorDashboard() {
     </div>
   )
 }
-

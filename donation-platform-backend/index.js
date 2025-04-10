@@ -2,6 +2,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./Config/db");
+const cors = require('cors');
 
 dotenv.config();
 connectDB();
@@ -9,6 +10,10 @@ connectDB();
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true // if you plan to send cookies/auth headers
+}));
 
 const authRoutes = require("./Routes/authRoutes");
 app.use("/api/auth", authRoutes);

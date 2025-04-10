@@ -12,56 +12,64 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
+import axios from "axios"
+
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
-
+  
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get("email") as string
+    const password = formData.get("password") as string
+  
+    const loginData = { email, password }
+  
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, loginData, {
+        withCredentials: true,
+      })
 
-      // For demo purposes, we'll just check if email and password are not empty
-      if (!email || !password) {
-        throw new Error("Please enter both email and password")
-      }
-
-      // Simulate successful login
+      
       toast({
         title: "Login successful",
-        description: "Redirecting to your dashboard...",
-      })
+        description: "Welcome back!",
+      })  
+      
 
-      // Redirect based on user type (in a real app, this would be determined by the backend)
-      if (email.includes("ngo")) {
+      // Redirect based on role
+      if (response.data.type === "user") {
+        router.push("/donor/dashboard")
+      } else if (response.data.type === "ngo") {
         router.push("/ngo/dashboard")
       } else {
-        router.push("/donor/dashboard")
+        router.push("/")
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error(error)
       toast({
         title: "Login failed",
-        description: error instanceof Error ? error.message : "Please check your credentials and try again",
+        description:
+          error?.response?.data?.message || "Invalid credentials. Please try again.",
         variant: "destructive",
       })
-    } finally {
-      setIsLoading(false)
     }
+  
+    setIsLoading(false)
   }
 
   const handleGoogleLogin = async () => {
     setIsLoading(true)
 
     try {
-      // Simulate OAuth login
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       toast({
@@ -105,11 +113,10 @@ export default function LoginPage() {
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
+                    name="email"
                     type="email"
                     placeholder="m@example.com"
                     className="pl-10"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
@@ -124,11 +131,10 @@ export default function LoginPage() {
                 <div className="relative">
                   <Input
                     id="password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     className="pr-10"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
                     required
                   />
                   <button
@@ -180,4 +186,3 @@ export default function LoginPage() {
     </div>
   )
 }
-
