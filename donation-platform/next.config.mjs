@@ -15,6 +15,14 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['images.unsplash.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '**',
+      },
+    ],
   },
   experimental: {
     webpackBuildWorker: true,
