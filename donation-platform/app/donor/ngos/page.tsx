@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
-  Search, MapPin, Star, Filter, ChevronRight, Hash, Heart
+  Search, MapPin, Star, Filter, ChevronRight, Hash, Heart, Navigation
 } from "lucide-react"
 import {
   Select,
@@ -19,6 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { toast } from "@/components/ui/use-toast"
 
 export default function NGOsPage() {
   const [ngos, setNgos] = useState<any[]>([]) // replace 'any' with your NGO type if you have it
@@ -26,6 +29,9 @@ export default function NGOsPage() {
   const [category, setCategory] = useState("all")
   const [sortBy, setSortBy] = useState("rating")
   const [loading, setLoading] = useState(true)
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
+  const [showNearMe, setShowNearMe] = useState(false)
+  const [locationLoading, setLocationLoading] = useState(false)
 
   const categories = [
     "all", "Education", "Healthcare", "Environment", "Social Services",
@@ -45,6 +51,55 @@ export default function NGOsPage() {
   // Fallback image in case of loading errors
   const fallbackImage = "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=2070"
 
+  // Function to calculate distance between two coordinates using Haversine formula
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Radius of the earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    const distance = R * c; // Distance in km
+    return distance;
+  }
+
+  // Function to get user's current location
+  const getUserLocation = () => {
+    setLocationLoading(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+          setShowNearMe(true);
+          setLocationLoading(false);
+          toast({
+            title: "Location found",
+            description: "Showing NGOs nearest to your location",
+          });
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          setLocationLoading(false);
+          toast({
+            title: "Location error",
+            description: "Could not access your location. Please check your browser permissions.",
+            variant: "destructive",
+          });
+        }
+      );
+    } else {
+      toast({
+        title: "Geolocation not supported",
+        description: "Your browser does not support geolocation",
+        variant: "destructive",
+      });
+      setLocationLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchNgos = async () => {
       setLoading(true)
@@ -53,7 +108,12 @@ export default function NGOsPage() {
         // Add random images to each NGO
         const ngosWithImages = (res.data.data || []).map((ngo: any, index: number) => ({
           ...ngo,
-          imageUrl: ngoImages[index % ngoImages.length] || fallbackImage
+          imageUrl: ngoImages[index % ngoImages.length] || fallbackImage,
+          // Add mock coordinates for demo purposes - in production these would come from your backend
+          coordinates: ngo.coordinates || {
+            lat: 40.7128 + (Math.random() * 2 - 1),
+            lng: -74.0060 + (Math.random() * 2 - 1)
+          }
         }))
         setNgos(ngosWithImages)
         console.log(res.data.data)
@@ -75,8 +135,26 @@ export default function NGOsPage() {
   });
 
   const sortedNgos = [...filteredNgos].sort((a, b) => {
-    if (sortBy === "rating") return (b.rating || 0) - (a.rating || 0);
-    if (sortBy === "name") return a.name.localeCompare(b.name);
+    if (showNearMe && userLocation) {
+      // Calculate distances if we're sorting by proximity
+      const distanceA = calculateDistance(
+        userLocation.lat, 
+        userLocation.lng, 
+        a.coordinates?.lat || 0, 
+        a.coordinates?.lng || 0
+      );
+      const distanceB = calculateDistance(
+        userLocation.lat, 
+        userLocation.lng, 
+        b.coordinates?.lat || 0, 
+        b.coordinates?.lng || 0
+      );
+      return distanceA - distanceB;
+    } else if (sortBy === "rating") {
+      return (b.rating || 0) - (a.rating || 0);
+    } else if (sortBy === "name") {
+      return a.name.localeCompare(b.name);
+    }
     return 0;
   });
 
@@ -110,7 +188,7 @@ export default function NGOsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-4 flex-wrap">
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Category" />
@@ -123,7 +201,11 @@ export default function NGOsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={sortBy} onValueChange={setSortBy}>
+            <Select 
+              value={sortBy} 
+              onValueChange={setSortBy}
+              disabled={showNearMe}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -132,6 +214,25 @@ export default function NGOsPage() {
                 <SelectItem value="name">Name (A-Z)</SelectItem>
               </SelectContent>
             </Select>
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2"
+              onClick={getUserLocation}
+              disabled={locationLoading}
+            >
+              <Navigation className="h-4 w-4" />
+              {locationLoading ? "Finding location..." : "Find Near Me"}
+            </Button>
+            {userLocation && (
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="near-me" 
+                  checked={showNearMe}
+                  onCheckedChange={setShowNearMe}
+                />
+                <Label htmlFor="near-me">Show nearest first</Label>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -176,6 +277,21 @@ export default function NGOsPage() {
                     <span className="font-medium">{ngo.rating ?? "N/A"}</span>
                   </div>
                 </div>
+                {userLocation && ngo.coordinates && (
+                  <div className="absolute top-3 left-3 z-10">
+                    <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm">
+                      <Navigation className="h-4 w-4 text-primary" />
+                      <span className="font-medium">
+                        {calculateDistance(
+                          userLocation.lat,
+                          userLocation.lng,
+                          ngo.coordinates.lat,
+                          ngo.coordinates.lng
+                        ).toFixed(1)} km
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent h-24"></div>
                 <div className="absolute bottom-3 left-3 right-3 z-10">
                   <div className="flex flex-wrap gap-2">
@@ -250,6 +366,7 @@ export default function NGOsPage() {
             onClick={() => {
               setSearchQuery("");
               setCategory("all");
+              setShowNearMe(false);
             }}
           >
             Clear Filters
