@@ -8,4 +8,5 @@ router.get("/ngos", getAllNGOs);
 // Get single NGO by ID
 router.get("/ngos/:id", getNGOById);
 
+
 module.exports = router; 

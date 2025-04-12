@@ -37,6 +37,10 @@ export default function LoginPage() {
         withCredentials: true,
       })
 
+      // Store token in localStorage
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token)
+      }
       
       toast({
         title: "Login successful",
@@ -53,7 +57,7 @@ export default function LoginPage() {
         router.push("/")
       }
     } catch (error: any) {
-      console.error(error)
+      console.error('Login Error:', error)
       toast({
         title: "Login failed",
         description:

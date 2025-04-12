@@ -98,7 +98,7 @@ const login = async (req, res) => {
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path:"/"
       })
-      .json({ msg: "Login successful", type });
+      .json({ msg: "Login successful", type,token });
   } catch (err) {
     res.status(500).json({ msg: "Server error" });
   }

@@ -12,7 +12,6 @@ const getAllNGOs = async (req, res) => {
       itemsAccepted: 1,
       createdAt: 1
     }).sort({ createdAt: -1 });
-    console.log(ngos)
     res.status(200).json({
       success: true,
       count: ngos.length,

@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, ArrowRight, Camera, Check, Clock, Gift, MapPin, Plus, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import axios from "axios"
+import { jwtDecode } from "jwt-decode"
+import { GoogleGenerativeAI } from "@google/generative-ai"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -15,21 +17,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 
+interface DecodedToken {
+  id: string;
+  type: string;
+  iat: number;
+  exp: number;
+}
+
 // Donation categories with icons
 const categories = [
-  { id: "food", name: "Food", icon: "🥗" },
-  { id: "clothes", name: "Clothes", icon: "👕" },
-  { id: "books", name: "Books", icon: "📚" },
-  { id: "medicines", name: "Medicines", icon: "💊" },
-  { id: "electronics", name: "Electronics", icon: "📱" },
-  { id: "others", name: "Others", icon: "📦" },
+  { id: "Clothes", name: "Clothes", icon: "👕" },
+  { id: "Books", name: "Books", icon: "📚" },
+  { id: "Toys", name: "Toys", icon: "🧸" },
+  { id: "Medicines", name: "Medicines", icon: "💊" },
+  { id: "Electronics", name: "Electronics", icon: "📱" },
+  { id: "Others", name: "Others", icon: "📦" },
 ]
 
 interface DonationItem {
   category: string
   quantity: string
   description: string
-  images: string[]
+  images: Array<{
+    url: string
+    analysis?: string
+  }>
+}
+
+interface NGOData {
+  itemsAccepted: string[];
+  name: string;
 }
 
 export default function DonatePage() {
@@ -52,13 +69,35 @@ export default function DonatePage() {
   const [address, setAddress] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [imageUploadError, setImageUploadError] = useState<string | null>(null)
+  const [ngoData, setNgoData] = useState<NGOData | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
 
   useEffect(() => {
     if (!ngoId) {
       router.push("/donor/ngos")
       return
     }
-  }, [ngoId, router])
+
+    // Fetch NGO details including accepted items
+    const fetchNGODetails = async () => {
+      try {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/ngos/${ngoId}`)
+        setNgoData({
+          itemsAccepted: response.data.data.itemsAccepted,
+          name: response.data.data.name
+        });
+      } catch (error) {
+        console.error('Error fetching NGO details:', error)
+        toast({
+          title: "Error",
+          description: "Failed to fetch NGO details. Please try again.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    fetchNGODetails()
+  }, [ngoId, router, toast])
 
   const handleAddItem = () => {
     if (!currentItem.category || !currentItem.quantity) {
@@ -85,68 +124,207 @@ export default function DonatePage() {
     setSelectedItems(updatedItems)
   }
 
-  const handleImageUpload = async () => {
+  const uploadToCloudinary = async (base64Image: string) => {
     try {
-      setImageUploadError(null)
-      // In a real app, this would be an actual file upload
-      const newImages = [...currentItem.images]
-      newImages.push(`/placeholder.svg?height=200&width=200&text=Image+${currentItem.images.length + 1}`)
-      setCurrentItem({ ...currentItem, images: newImages })
+      // Convert base64 to blob
+      const base64Response = await fetch(base64Image);
+      const blob = await base64Response.blob();
+      const formData = new FormData();
+      formData.append('file', blob);
+      formData.append('upload_preset', 'donation_images');
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+      return data.secure_url;
     } catch (error) {
-      setImageUploadError("Failed to upload image. Please try again.")
-      toast({
-        title: "Upload failed",
-        description: "Failed to upload image. Please try again.",
-        variant: "destructive",
-      })
+      console.error('Cloudinary upload error:', error);
+      throw new Error('Failed to upload image to Cloudinary');
     }
-  }
+  };
 
-  const handleSubmit = async () => {
-    if (selectedItems.length === 0) {
-      toast({
-        title: "No items selected",
-        description: "Please add at least one item to donate",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsLoading(true)
-
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      const donationData = {
-        ngo: ngoId,
-        items: selectedItems.map(item => ({
-          itemName: item.category,
-          quantity: parseInt(item.quantity),
-          description: item.description,
-          images: item.images
-        })),
-        pickupOption,
-        pickupDate: pickupOption === "scheduled" ? pickupDate : null,
-        pickupTime: pickupOption === "scheduled" ? pickupTime : null,
-        address
+      setImageUploadError(null);
+      setIsUploadingImage(true);
+      const files = e.target.files;
+      
+      if (!files || files.length === 0) {
+        setIsUploadingImage(false);
+        return;
       }
 
-      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations`, donationData)
+      // Check total number of images
+      if (currentItem.images.length + files.length > 5) {
+        toast({
+          title: "Too many images",
+          description: "You can upload a maximum of 5 images per item",
+          variant: "destructive",
+        });
+        setIsUploadingImage(false);
+        return;
+      }
 
       toast({
-        title: "Donation request submitted!",
-        description: "The NGO will contact you soon to arrange pickup.",
-      })
+        title: "Processing images",
+        description: "Uploading and analyzing your images...",
+      });
 
-      router.push("/donor/dashboard")
+      // Process each file
+      const uploadPromises = Array.from(files).map(async (file) => {
+        return new Promise<{ url: string; analysis: string }>(async (resolve) => {
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            if (e.target?.result) {
+              const base64Image = e.target.result as string;
+              
+              try {
+                // Upload to Cloudinary first
+                const cloudinaryUrl = await uploadToCloudinary(base64Image);
+                
+                // Get image analysis
+                const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || "");
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                
+                const result = await model.generateContent([
+                  "Analyze this image and describe the item in detail, including its condition, material, and any visible damage or wear. Be specific about the item's current state.",
+                  {
+                    inlineData: {
+                      data: base64Image.split(",")[1],
+                      mimeType: "image/jpeg"
+                    }
+                  }
+                ]);
+                
+                const response = await result.response;
+                const analysis = response.text();
+                
+                resolve({ url: cloudinaryUrl, analysis });
+              } catch (error) {
+                console.error("Upload or analysis error:", error);
+                toast({
+                  title: "Error",
+                  description: "Failed to process image. Please try again.",
+                  variant: "destructive",
+                });
+                resolve({ url: base64Image, analysis: "Analysis failed" });
+              }
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      const processedImages = await Promise.all(uploadPromises);
+      setCurrentItem(prevItem => ({
+        ...prevItem,
+        images: [...prevItem.images, ...processedImages]
+      }));
+
+      toast({
+        title: "Success",
+        description: "Images uploaded and analyzed successfully!",
+      });
+
     } catch (error) {
+      setImageUploadError("Failed to upload images. Please try again.");
       toast({
-        title: "Submission failed",
-        description: "An error occurred while submitting your donation request. Please try again.",
+        title: "Upload failed",
+        description: "Failed to upload images. Please try again.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsUploadingImage(false);
     }
-  }
+  };
+  
+  const handleSubmit = async () => {
+    try {
+      setIsLoading(true)
+      
+      if (!address) {
+        toast({
+          title: "Missing address",
+          description: "Please provide a pickup address",
+          variant: "destructive",
+        })
+        return
+      }
+      
+      const token = localStorage.getItem('token')
+      const decodedToken = token ? jwtDecode<DecodedToken>(token) : null
+      const userId = decodedToken?.id
+      if (!userId) {
+        toast({
+          title: "Authentication Error",
+          description: "Please login again",
+          variant: "destructive",
+        })
+        return
+      }
+      
+      // Process items with proper format
+      const processedItems = selectedItems.map(item => ({
+        itemName: item.category,  // Using category as itemName
+        quantity: parseInt(item.quantity),
+        description: item.description || "",
+        images: item.images || []  // Ensure images array is included
+      }));
+      
+      // Split address into components
+      const addressParts: string[] = address.split(',').map((part: string) => part.trim())
+      if (addressParts.length < 5) {
+        toast({
+          title: "Invalid address format",
+          description: "Please provide address in format: Street, Landmark, City, State, Pincode",
+          variant: "destructive",
+        })
+        return
+      }
+      
+      const donationData = {
+        userId: userId,
+        ngo: ngoId,
+        items: processedItems,
+        pickupOption: pickupOption,
+        pickupDate: pickupOption === "asap" ? null : pickupDate,
+        pickupTime: pickupOption === "asap" ? null : pickupTime,
+        pickupAddress: address,  // Send the original address string
+        notes: ""
+      };
+
+      console.log(donationData);
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/donate`,
+        donationData,
+        {
+          withCredentials: true
+        }
+      );
+      if (response.data.success) {
+        toast({
+          title: "Success!",
+          description: "Your donation has been submitted successfully.",
+        });
+        router.push("/donor/donations");
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit donation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const nextStep = () => {
     if (step === 1 && selectedItems.length === 0) {
@@ -200,8 +378,8 @@ export default function DonatePage() {
             <h1 className="text-3xl font-bold tracking-tight mb-2">Make a Donation</h1>
             <p className="text-muted-foreground">
               Fill in the details about your donation
-            </p>
-          </div>
+                  </p>
+                </div>
 
           {/* Progress Steps */}
           <div className="relative mb-10">
@@ -241,7 +419,7 @@ export default function DonatePage() {
                 )
               })}
             </ol>
-          </div>
+              </div>
 
           {/* Step 1: Select Items */}
           {step === 1 && (
@@ -253,20 +431,22 @@ export default function DonatePage() {
                 <div className="space-y-4">
                   <Label>Select Category</Label>
                   <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
-                    {categories.map((category) => (
-                      <Card
-                        key={category.id}
-                        className={`text-center cursor-pointer hover:border-primary transition-colors ${
-                          currentItem.category === category.id ? "border-primary bg-primary/5" : ""
-                        }`}
-                        onClick={() => setCurrentItem({ ...currentItem, category: category.id })}
-                      >
-                        <CardContent className="p-4">
-                          <div className="text-3xl mb-2">{category.icon}</div>
-                          <p className="text-sm font-medium">{category.name}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
+                    {categories
+                      .filter(category => ngoData?.itemsAccepted?.includes(category.id))
+                      .map((category) => (
+                        <Card
+                          key={category.id}
+                          className={`text-center cursor-pointer hover:border-primary transition-colors ${
+                            currentItem.category === category.id ? "border-primary bg-primary/5" : ""
+                          }`}
+                          onClick={() => setCurrentItem({ ...currentItem, category: category.id })}
+                        >
+                          <CardContent className="p-4">
+                            <div className="text-3xl mb-2">{category.icon}</div>
+                            <p className="text-sm font-medium">{category.name}</p>
+                          </CardContent>
+                        </Card>
+                      ))}
                   </div>
                 </div>
 
@@ -276,54 +456,89 @@ export default function DonatePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="quantity">Quantity</Label>
-                        <Input
+                  <Input
                           id="quantity"
                           placeholder="e.g., 5 shirts, 2kg rice"
-                          value={currentItem.quantity}
+                    value={currentItem.quantity}
                           onChange={(e) => setCurrentItem({ ...currentItem, quantity: e.target.value })}
-                        />
-                      </div>
+                  />
+                </div>
                       <div className="space-y-2">
                         <Label htmlFor="description">Description (Optional)</Label>
                         <Input
                           id="description"
                           placeholder="e.g., Men's shirts, size L"
-                          value={currentItem.description}
+                    value={currentItem.description}
                           onChange={(e) => setCurrentItem({ ...currentItem, description: e.target.value })}
-                        />
-                      </div>
+                  />
+                </div>
                     </div>
 
                     <div className="space-y-2">
                       <Label>Upload Images (Optional)</Label>
-                      <div className="flex flex-wrap gap-4">
+                      <div className="flex flex-col gap-4">
                         {currentItem.images.map((image, index) => (
-                          <div key={index} className="relative w-24 h-24 border rounded">
-                            <img
-                              src={image || "/placeholder.svg"}
-                              alt="Donation item"
-                              className="w-full h-full object-cover"
-                            />
-                            <button
-                              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
-                              onClick={() => {
-                                const newImages = [...currentItem.images]
-                                newImages.splice(index, 1)
-                                setCurrentItem({ ...currentItem, images: newImages })
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
+                          <div key={index} className="space-y-2">
+                            <div className="relative w-24 h-24 border rounded">
+                              <img
+                                src={image.url}
+                                alt={`Donation item ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              <button
+                                className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
+                                onClick={() => {
+                                  const newImages = [...currentItem.images];
+                                  newImages.splice(index, 1);
+                                  setCurrentItem({ ...currentItem, images: newImages });
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                            {image.analysis && (
+                              <div className="w-full p-2 bg-gray-100 rounded-lg">
+                                <p className="text-sm text-gray-700">
+                                  {image.analysis}
+                                </p>
+                              </div>
+                            )}
                           </div>
                         ))}
-                        <button
-                          className="w-24 h-24 border border-dashed rounded flex flex-col items-center justify-center text-muted-foreground hover:text-foreground"
-                          onClick={handleImageUpload}
+                        <label
+                          htmlFor="image-upload"
+                          className={`w-24 h-24 border border-dashed rounded flex flex-col items-center justify-center text-muted-foreground hover:text-foreground ${
+                            isUploadingImage ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                          }`}
                         >
-                          <Camera className="h-6 w-6 mb-1" />
-                          <span className="text-xs">Add Photo</span>
-                        </button>
+                          {isUploadingImage ? (
+                            <div className="flex flex-col items-center">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mb-1"></div>
+                              <span className="text-xs">Processing...</span>
+                            </div>
+                          ) : (
+                            <>
+                              <Camera className="h-6 w-6 mb-1" />
+                              <span className="text-xs">Add Photo</span>
+                            </>
+                          )}
+                          <input
+                            id="image-upload"
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={handleImageUpload}
+                            disabled={isUploadingImage}
+                          />
+                        </label>
                       </div>
+                      {imageUploadError && (
+                        <p className="text-sm text-destructive">{imageUploadError}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Maximum 5 images, 5MB each. Supported formats: JPG, PNG, GIF
+                      </p>
                     </div>
 
                     <Button onClick={handleAddItem} className="w-full">
@@ -350,6 +565,28 @@ export default function DonatePage() {
                               <p className="font-medium">{category?.name}</p>
                               <p className="text-sm text-muted-foreground">{item.quantity}</p>
                               {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
+                              {item.images.length > 0 && (
+                                <div className="mt-2 space-y-2">
+                                  {item.images.map((image, imgIndex) => (
+                                    <div key={imgIndex} className="space-y-1">
+                                      <div className="relative w-24 h-24 border rounded">
+                                        <img
+                                          src={image.url}
+                                          alt={`${category?.name} ${imgIndex + 1}`}
+                                          className="w-full h-full object-cover rounded"
+                                        />
+                                      </div>
+                                      {image.analysis && (
+                                        <div className="w-full p-2 bg-gray-100 rounded-lg">
+                                          <p className="text-xs text-gray-700">
+                                            {image.analysis}
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(index)}>
@@ -541,29 +778,52 @@ export default function DonatePage() {
                               <p className="font-medium">{category?.name}</p>
                               <p className="text-sm text-muted-foreground">{item.quantity}</p>
                               {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
+                              {item.images.length > 0 && (
+                                <div className="mt-2 space-y-2">
+                                  {item.images.map((image, imgIndex) => (
+                                    <div key={imgIndex} className="space-y-1">
+                                      <div className="relative w-24 h-24 border rounded">
+                                        <img
+                                          src={image.url}
+                                          alt={`${category?.name} ${imgIndex + 1}`}
+                                          className="w-full h-full object-cover rounded"
+                                        />
+                                      </div>
+                                      {image.analysis && (
+                                        <div className="w-full p-2 bg-gray-100 rounded-lg">
+                                          <p className="text-xs text-gray-700">
+                                            {image.analysis}
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )
                       })}
                     </div>
-                  </div>
+                </div>
 
-                  <Separator />
+                <Separator />
 
                   <div>
                     <h3 className="font-medium mb-2">Pickup Details</h3>
-                    <div className="space-y-2">
+                <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <p>
                           {pickupOption === "asap"
                             ? "As soon as possible"
-                            : `${new Date(pickupDate).toLocaleDateString()} - ${pickupTime === "morning"
-                              ? "Morning (9 AM - 12 PM)"
-                              : pickupOption === "afternoon"
-                                ? "Afternoon (12 PM - 3 PM)"
-                                : "Evening (3 PM - 6 PM)"
-                            }`}
+                            : `${new Date(pickupDate).toLocaleDateString()} - ${
+                                pickupTime === "morning"
+                                  ? "Morning (9 AM - 12 PM)"
+                                  : pickupTime === "afternoon"
+                                    ? "Afternoon (12 PM - 3 PM)"
+                                    : "Evening (3 PM - 6 PM)"
+                              }`}
                         </p>
                       </div>
                       <div className="flex items-start gap-2">
@@ -604,8 +864,8 @@ export default function DonatePage() {
                       </li>
                     </ol>
                   </div>
+                  </div>
                 </div>
-              </div>
 
               <div className="flex justify-between pt-6">
                 <Button variant="outline" onClick={prevStep}>

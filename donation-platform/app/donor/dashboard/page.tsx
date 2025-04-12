@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import {
   ArrowRight,
@@ -9,6 +9,10 @@ import {
   Package,
   CheckCircle,
 } from "lucide-react"
+import axios from "axios"
+import { useToast } from "@/hooks/use-toast"
+import { jwtDecode } from "jwt-decode"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -22,50 +26,81 @@ import {
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+interface Donation {
+  _id: string;
+  items: Array<{
+    itemName: string;
+    quantity: number;
+    description: string;
+    images: Array<{
+      url: string;
+      analysis: string;
+    }>;
+  }>;
+  ngo: {
+    name: string;
+  };
+  status: "Pending" | "Accepted" | "Rejected" | "Completed";
+  pickupOption: "scheduled" | "asap";
+  pickupDate?: string;
+  pickupTime?: string;
+  createdAt: string;
+  completedDate?: string;
+}
+
+interface DecodedToken {
+  id: string
+  type: string
+  iat: number
+  exp: number
+}
+
 export default function DonorDashboard() {
   const [activeTab, setActiveTab] = useState("pending")
+  const [donations, setDonations] = useState<Donation[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { toast } = useToast()
+  const router = useRouter()
 
-  const pendingDonations = [
-    {
-      id: "DON-001",
-      date: "2023-05-15",
-      items: ["Clothes (5)", "Books (10)"],
-      ngo: "Hope Foundation",
-      status: "Awaiting Response",
-      progress: 25,
-    },
-    {
-      id: "DON-002",
-      date: "2023-05-18",
-      items: ["Food (2kg)", "Medicines"],
-      ngo: "Care for All",
-      status: "Accepted & Scheduled",
-      pickupDate: "2023-05-25",
-      pickupTime: "10:00 AM - 12:00 PM",
-      progress: 50,
-    },
-  ]
+  useEffect(() => {
+    const fetchDonations = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) {
+          router.push('/login')
+          return
+        }
 
-  const completedDonations = [
-    {
-      id: "DON-003",
-      date: "2023-04-10",
-      items: ["Electronics (2)", "Books (15)"],
-      ngo: "Green Earth Initiative",
-      completedDate: "2023-04-15",
-      impact: "Helped 5 students with educational materials",
-      progress: 100,
-    },
-    {
-      id: "DON-004",
-      date: "2023-03-22",
-      items: ["Clothes (10)", "Food (5kg)"],
-      ngo: "Hope Foundation",
-      completedDate: "2023-03-25",
-      impact: "Supported 3 families with essential supplies",
-      progress: 100,
-    },
-  ]
+        const decodedToken = jwtDecode<DecodedToken>(token)
+        const userId = decodedToken.id
+
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/user/${userId}`
+        )
+
+        console.log('Donations:', response.data.data)
+        setDonations(response.data.data)
+      } catch (error) {
+        console.error('Error fetching donations:', error)
+        toast({
+          title: "Error",
+          description: "Failed to fetch donations",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchDonations()
+  }, [toast, router])
+
+  const pendingDonations = donations.filter(d => d.status === "Pending" || d.status === "Accepted")
+  const completedDonations = donations.filter(d => d.status === "Completed")
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
 
   return (
     <div className="space-y-6">
@@ -88,10 +123,8 @@ export default function DonorDashboard() {
             <CardTitle className="text-sm font-medium">Total Donations</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
-              {pendingDonations.length + completedDonations.length}
-            </div>
-            <p className="text-xs text-muted-foreground">+2 from last month</p>
+            <div className="text-3xl font-bold">{donations.length}</div>
+            <p className="text-xs text-muted-foreground">All your donations</p>
           </CardContent>
         </Card>
         <Card>
@@ -133,13 +166,13 @@ export default function DonorDashboard() {
             </Card>
           ) : (
             pendingDonations.map((donation) => (
-              <Card key={donation.id}>
+              <Card key={donation._id}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>{donation.id}</CardTitle>
+                    <CardTitle>DON-{donation._id.slice(-4)}</CardTitle>
                     <span
                       className={`text-xs px-2 py-1 rounded-full ${
-                        donation.status === "Awaiting Response"
+                        donation.status === "Pending"
                           ? "bg-yellow-100 text-yellow-800"
                           : "bg-green-100 text-green-800"
                       }`}
@@ -147,7 +180,7 @@ export default function DonorDashboard() {
                       {donation.status}
                     </span>
                   </div>
-                  <CardDescription>Created on {new Date(donation.date).toLocaleDateString()}</CardDescription>
+                  <CardDescription>Created on {new Date(donation.createdAt).toLocaleDateString()}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -155,14 +188,14 @@ export default function DonorDashboard() {
                     <div className="flex flex-wrap gap-2">
                       {donation.items.map((item, i) => (
                         <span key={i} className="bg-muted text-xs px-2 py-1 rounded-full">
-                          {item}
+                          {item.quantity} {item.itemName}
                         </span>
                       ))}
                     </div>
                   </div>
                   <div>
                     <p className="text-sm font-medium mb-1">NGO:</p>
-                    <p className="text-sm">{donation.ngo}</p>
+                    <p className="text-sm">{donation.ngo.name}</p>
                   </div>
                   {donation.pickupDate && (
                     <div className="flex items-center gap-2 text-sm">
@@ -175,14 +208,16 @@ export default function DonorDashboard() {
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
                       <span>Progress</span>
-                      <span>{donation.progress}%</span>
+                      <span>{donation.status === "Pending" ? "25%" : "50%"}</span>
                     </div>
-                    <Progress value={donation.progress} />
+                    <Progress value={donation.status === "Pending" ? 25 : 50} />
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button variant="outline" className="w-full">
-                    View Details <ArrowRight className="ml-2 h-4 w-4" />
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link href={`/donor/donations/${donation._id}`}>
+                      View Details <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
                   </Button>
                 </CardFooter>
               </Card>
@@ -200,14 +235,14 @@ export default function DonorDashboard() {
             </Card>
           ) : (
             completedDonations.map((donation) => (
-              <Card key={donation.id}>
+              <Card key={donation._id}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>{donation.id}</CardTitle>
+                    <CardTitle>DON-{donation._id.slice(-4)}</CardTitle>
                     <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Completed</span>
                   </div>
                   <CardDescription>
-                    Donated on {new Date(donation.completedDate).toLocaleDateString()}
+                    Completed on {new Date(donation.completedDate || donation.createdAt).toLocaleDateString()}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -216,30 +251,28 @@ export default function DonorDashboard() {
                     <div className="flex flex-wrap gap-2">
                       {donation.items.map((item, i) => (
                         <span key={i} className="bg-muted text-xs px-2 py-1 rounded-full">
-                          {item}
+                          {item.quantity} {item.itemName}
                         </span>
                       ))}
                     </div>
                   </div>
                   <div>
                     <p className="text-sm font-medium mb-1">NGO:</p>
-                    <p className="text-sm">{donation.ngo}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium mb-1">Impact:</p>
-                    <p className="text-sm">{donation.impact}</p>
+                    <p className="text-sm">{donation.ngo.name}</p>
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
                       <span>Progress</span>
-                      <span>{donation.progress}%</span>
+                      <span>100%</span>
                     </div>
-                    <Progress value={donation.progress} />
+                    <Progress value={100} />
                   </div>
                 </CardContent>
                 <CardFooter className="flex gap-4">
-                  <Button variant="outline" className="flex-1">
-                    View Details
+                  <Button variant="outline" className="flex-1" asChild>
+                    <Link href={`/donor/donations/${donation._id}`}>
+                      View Details
+                    </Link>
                   </Button>
                   <Button variant="secondary" className="flex-1">
                     Leave Feedback
