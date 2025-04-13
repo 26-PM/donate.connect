@@ -1,10 +1,34 @@
-import Link from "next/link"
-import Image from "next/image"
-import { ArrowRight, Gift, Clock, CheckCircle, Star } from "lucide-react"
+'use client';
 
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { ArrowRight, Gift, Clock, CheckCircle, Star, Sun, Moon } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 
 export default function LandingPage() {
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+      setIsDarkMode(true);
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    } else {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    }
+    setIsDarkMode(!isDarkMode);
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
@@ -28,6 +52,13 @@ export default function LandingPage() {
             </Link>
           </nav>
           <div className="flex items-center gap-4">
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-full border hover:bg-muted"
+              aria-label="Toggle Dark Mode"
+            >
+              {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
             <Link href="/login">
               <Button variant="outline">Login</Button>
             </Link>
@@ -41,13 +72,22 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className="relative">
           <div className="absolute inset-0 z-0">
-            <Image
-              src="/placeholder.svg?height=800&width=1600"
-              alt="People donating"
-              fill
-              className="object-cover opacity-20"
-              priority
-            />
+            <div className="w-full h-full relative">
+              <Image
+                src="https://plus.unsplash.com/premium_photo-1738416571378-46793a101767?q=80&w=3174&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                alt="Digital donation platform connecting donors and NGOs"
+                fill
+                className="object-cover opacity-20"
+                priority
+                unoptimized={true}
+                style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover'
+                }}
+              />
+            </div>
           </div>
           <div className="container relative z-10 py-24 md:py-32 lg:py-40">
             <div className="flex flex-col items-center text-center space-y-8 max-w-3xl mx-auto">
@@ -63,11 +103,6 @@ export default function LandingPage() {
                     Donate Now <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                {/* <Link href="/ngos">
-                  <Button size="lg" variant="outline">
-                    Find NGOs
-                  </Button>
-                </Link> */}
                 <Link href="/signup">
                   <Button size="lg" variant="secondary">
                     Sign Up
@@ -227,17 +262,17 @@ export default function LandingPage() {
                 {
                   name: "Hope Foundation",
                   mission: "Providing education and basic necessities to underprivileged children",
-                  image: "/placeholder.svg?height=200&width=300",
+                  image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=200",
                 },
                 {
                   name: "Green Earth Initiative",
                   mission: "Promoting sustainability and environmental conservation through community action",
-                  image: "/placeholder.svg?height=200&width=300",
+                  image: "https://images.unsplash.com/photo-1466611653911-95081537e5b7?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=200",
                 },
                 {
                   name: "Care for All",
                   mission: "Supporting elderly and disabled individuals with essential services and companionship",
-                  image: "/placeholder.svg?height=200&width=300",
+                  image: "https://plus.unsplash.com/premium_photo-1658506620365-925c827c6fdc?q=80&w=3138&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
                 },
               ].map((ngo, index) => (
                 <div key={index} className="border rounded-lg overflow-hidden">
@@ -261,122 +296,93 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
-      <footer className="border-t bg-muted/50 backdrop-blur-sm">
-        <div className="container py-12 md:py-16">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+      <footer className="border-t bg-muted/50">
+        <div className="container py-8 md:py-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center gap-2 font-bold mb-6">
+              <div className="flex items-center gap-2 font-bold mb-4">
                 <Gift className="h-6 w-6 text-primary" />
-                <span className="text-lg">DonateConnect</span>
+                <span>DonateConnect</span>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Connecting donors with NGOs to make a positive impact in communities. Together, we can create a better world through giving.
+              <p className="text-sm text-muted-foreground">
+                Connecting donors with NGOs to make a positive impact in communities.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold mb-6 text-lg">Quick Links</h3>
-              <ul className="space-y-4">
+              <h3 className="font-medium mb-4">Quick Links</h3>
+              <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
                     Home
                   </Link>
                 </li>
                 <li>
-                  <Link href="#how-it-works" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="#how-it-works" className="text-muted-foreground hover:text-foreground">
                     How It Works
                   </Link>
                 </li>
                 <li>
-                  <Link href="#why-donate" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="#why-donate" className="text-muted-foreground hover:text-foreground">
                     Why Donate
                   </Link>
                 </li>
                 <li>
-                  <Link href="/login" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="/login" className="text-muted-foreground hover:text-foreground">
                     Login
                   </Link>
                 </li>
                 <li>
-                  <Link href="/signup" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="/signup" className="text-muted-foreground hover:text-foreground">
                     Sign Up
                   </Link>
                 </li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-6 text-lg">Legal</h3>
-              <ul className="space-y-4">
+              <h3 className="font-medium mb-4">Legal</h3>
+              <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
                     Privacy Policy
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
                     Terms of Service
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
                     Cookie Policy
                   </Link>
                 </li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-6 text-lg">Contact Us</h3>
-              <ul className="space-y-4">
-                <li className="text-sm text-muted-foreground flex items-center gap-2">
-                  <span className="bg-primary/10 p-1.5 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-                  </span>
-                  info@donateconnect.com
-                </li>
-                <li className="text-sm text-muted-foreground flex items-center gap-2">
-                  <span className="bg-primary/10 p-1.5 rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                  </span>
-                  +1 (555) 123-4567
-                </li>
-                <li className="flex gap-4 mt-6">
-                  {[
-                    {
-                      name: "Twitter",
-                      icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
-                    },
-                    {
-                      name: "Facebook",
-                      icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-                    },
-                    {
-                      name: "Instagram",
-                      icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-                    },
-                    {
-                      name: "LinkedIn",
-                      icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
-                    }
-                  ].map((social) => (
-                    <Link 
-                      key={social.name} 
-                      href="#" 
-                      className="bg-background hover:bg-primary/10 transition-colors p-2 rounded-full"
-                      aria-label={social.name}
-                    >
-                      {social.icon}
+              <h3 className="font-medium mb-4">Contact Us</h3>
+              <ul className="space-y-2 text-sm">
+                <li className="text-muted-foreground">Email: info@donateconnect.com</li>
+                <li className="text-muted-foreground">Phone: +1 (555) 123-4567</li>
+                <li className="flex gap-4 mt-4">
+                  {["twitter", "facebook", "instagram", "linkedin"].map((social) => (
+                    <Link key={social} href="#" className="text-muted-foreground hover:text-foreground">
+                      <div className="h-8 w-8 border rounded-full flex items-center justify-center">
+                        <span className="sr-only">{social}</span>
+                        <div className="h-4 w-4" />
+                      </div>
                     </Link>
                   ))}
                 </li>
               </ul>
             </div>
           </div>
-          <div className="border-t mt-12 pt-8 text-center text-sm text-muted-foreground">
+          <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
             <p>© {new Date().getFullYear()} DonateConnect. All rights reserved.</p>
-            <p className="mt-2">Developed with ❤️ by <Link href="/" className="text-primary hover:text-primary/80">PM & MA</Link></p>
+            <p>Made with ❤️ by PM and MA</p>
           </div>
         </div>
       </footer>
     </div>
-  )
+  );
 }
 
