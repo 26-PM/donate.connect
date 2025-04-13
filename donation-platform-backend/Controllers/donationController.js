@@ -245,8 +245,137 @@ const getDonationById = async (req, res) => {
   }
 };
 
+const getNgoDonations = async (req, res) => {
+  try {
+    const { ngoId } = req.params;
+    console.log('Fetching donations for NGO:', ngoId);
+
+    const donations = await Donation.find({ ngo: ngoId })
+      .populate('user', 'firstName lastName email')
+      .sort({ createdAt: -1 });
+
+    console.log('Donations found:', donations);
+    res.status(200).json({  
+      success: true,
+      data: donations
+    });
+  } catch (error) {
+    console.error('Error fetching NGO donations:', error);
+    res.status(500).json({  
+      success: false,
+      message: 'Failed to fetch donations',
+      error: error.message
+    });
+  }
+};  
+
+const updateDonationStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, completedDate } = req.body;
+    
+    console.log('Updating donation status:', { id, status, completedDate });
+
+    // Validate if id is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid donation ID format'
+      });
+    }
+
+    // Validate status
+    const validStatuses = ['Pending', 'Accepted', 'Rejected', 'Completed'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+      });
+    }
+
+    const updateData = { status };
+    
+    // Add completedDate if status is Completed and completedDate is provided
+    if (status === 'Completed' && completedDate) {
+      updateData.completedDate = completedDate;
+    }
+
+    const donation = await Donation.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!donation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Donation not found'
+      });
+    }
+
+    // Send notification based on status change
+    // const user = await User.findById(donation.user);
+    // const ngo = await NGO.findById(donation.ngo);
+
+    // if (user && user.email) {
+    //   let emailSubject = '';
+    //   let emailBody = '';
+
+    //   switch (status) {
+    //     case 'Accepted':
+    //       emailSubject = 'Your Donation Has Been Accepted';
+    //       emailBody = `
+    //         <p>Hi ${user.name},</p>
+    //         <p>${ngo.name} has accepted your donation. They will contact you to arrange pickup soon.</p>
+    //         <p>Thank you for your generosity!</p>
+    //       `;
+    //       break;
+    //     case 'Rejected':
+    //       emailSubject = 'Update on Your Donation Request';
+    //       emailBody = `
+    //         <p>Hi ${user.name},</p>
+    //         <p>Unfortunately, ${ngo.name} is unable to accept your donation at this time.</p>
+    //         <p>Thank you for your willingness to donate.</p>
+    //       `;
+    //       break;
+    //     case 'Completed':
+    //       emailSubject = 'Donation Completed';
+    //       emailBody = `
+    //         <p>Hi ${user.name},</p>
+    //         <p>Your donation to ${ngo.name} has been successfully completed.</p>
+    //         <p>Thank you for your contribution to making a difference!</p>
+    //       `;
+    //       break;
+    //   }
+
+    //   if (emailSubject && emailBody) {
+    //     await sendEmail({
+    //       to: user.email,
+    //       subject: emailSubject,
+    //       html: emailBody
+    //     });
+    //   }
+    // }
+
+    res.status(200).json({
+      success: true,
+      message: `Donation status updated to ${status}`,
+      data: donation
+    });
+  } catch (error) {
+    console.error('Error updating donation status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update donation status',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   createDonation,
   getUserDonations,
-  getDonationById
+  getDonationById,
+  getNgoDonations,
+  updateDonationStatus
 };
