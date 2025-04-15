@@ -1,36 +1,50 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-const userSchema = new mongoose.Schema({
-  firstName: {
-    type: String,
-    required: [true, 'First name is required'],
+export interface IUser extends mongoose.Document {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  mobile: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const userSchema = new mongoose.Schema(
+  {
+    firstName: {
+      type: String,
+      required: [true, "First name is required"],
+      trim: true,
+    },
+    lastName: {
+      type: String,
+      required: [true, "Last name is required"],
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: [true, "Password is required"],
+      minlength: [6, "Password must be at least 6 characters"],
+    },
+    mobile: {
+      type: String,
+      required: [true, "Mobile number is required"],
+    },
   },
-  lastName: {
-    type: String,
-    required: [true, 'Last name is required'],
-  },
-  email: {
-    type: String,
-    required: [true, 'Email is required'],
-    unique: true,
-    lowercase: true,
-  },
-  password: {
-    type: String,
-    required: [true, 'Password is required'],
-    minlength: 6,
-  },
-  role: {
-    type: String,
-    enum: ['donor', 'ngo'],
-    required: true,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  { timestamps: true }
+);
+
+// Create indexes for frequently queried fields
+userSchema.index({ email: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
@@ -50,6 +64,6 @@ userSchema.methods.comparePassword = async function(candidatePassword: string) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-const User = mongoose.models.User || mongoose.model('User', userSchema);
+const User = mongoose.models.User || mongoose.model<IUser>("User", userSchema);
 
 export default User; 

@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { Ngo } from '../../../../lib/models/Ngo';
+import User from '../../../../lib/models/User';
 import { connectDB } from '../../../../lib/config/db';
+import { cookies } from 'next/headers';
 
 // Handle OPTIONS request for CORS preflight
 export async function OPTIONS() {
@@ -21,51 +23,92 @@ export async function POST(req: Request) {
   try {
     await connectDB();
     const { email, password } = await req.json();
+    const trimmedEmail = email.trim().toLowerCase();
 
-    // Find NGO by email
-    const ngo = await Ngo.findOne({ email });
-    if (!ngo) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid email or password' },
-        { status: 401 }
+    // Try logging in as User first
+    let account = await User.findOne({ email: trimmedEmail });
+    let type = "user";
+
+    // If not found, try as NGO
+    if (!account) {
+      account = await Ngo.findOne({ email: trimmedEmail });
+      type = "ngo";
+    }
+
+    if (!account) {
+      return new NextResponse(
+        JSON.stringify({ success: false, message: 'Invalid credentials' }),
+        { 
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
       );
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, ngo.password);
+    const isPasswordValid = await bcrypt.compare(password, account.password);
     if (!isPasswordValid) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid email or password' },
-        { status: 401 }
+      return new NextResponse(
+        JSON.stringify({ success: false, message: 'Invalid credentials' }),
+        { 
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
       );
     }
 
     // Generate JWT token
-    const token = jwt.sign({ id: ngo._id }, process.env.JWT_SECRET!, {
-      expiresIn: '7d',
+    const token = jwt.sign(
+      { id: account._id, type }, 
+      process.env.JWT_SECRET!, 
+      { expiresIn: '7d' }
+    );
+
+    // Create response
+    const response = new NextResponse(
+      JSON.stringify({
+        success: true,
+        message: 'Login successful',
+        type,
+        token
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    );
+
+    // Set cookie
+    const cookieStore = cookies();
+    cookieStore.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60,
+      path: '/'
     });
-
-    // Remove password from response
-    const { password: _, ...ngoWithoutPassword } = ngo.toObject();
-
-    const response = NextResponse.json({
-      success: true,
-      message: 'Login successful',
-      token,
-      ngo: ngoWithoutPassword,
-    });
-
-    // Set CORS headers
-    response.headers.set('Access-Control-Allow-Origin', '*');
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     return response;
+
   } catch (error: any) {
     console.error('Login error:', error);
-    return NextResponse.json(
-      { success: false, message: 'Error logging in', error: error.message },
-      { status: 500 }
+    return new NextResponse(
+      JSON.stringify({ 
+        success: false, 
+        message: 'Server error', 
+      }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
     );
   }
 } 
