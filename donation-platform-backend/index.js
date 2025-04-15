@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use(cors({
-  origin: "https://donateconnect.vercel.app",
+  origin: "*",
   credentials: true // if using cookies or Authorization headers
 }));
 
