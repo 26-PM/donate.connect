@@ -90,16 +90,18 @@ const login = async (req, res) => {
       expiresIn: "7d",
     });
 
+    // Updated cookie settings to fix CORS issues
     res
       .cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Changed to 'none' for cross-site requests in production
         maxAge: 7 * 24 * 60 * 60 * 1000,
-        path:"/"
+        path: "/"
       })
-      .json({ msg: "Login successful", type,token });
+      .json({ msg: "Login successful", type, token });
   } catch (err) {
+    console.error("Login error:", err);
     res.status(500).json({ msg: "Server error" });
   }
 };
@@ -110,9 +112,9 @@ const logout = (req, res) => {
   res
     .clearCookie("token", {
       httpOnly: true,
-      sameSite: "strict",
       secure: process.env.NODE_ENV === "production",
-      path:"/"
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Changed to match login cookie settings
+      path: "/"
     })
     .json({ msg: "Logged out successfully" });
 };

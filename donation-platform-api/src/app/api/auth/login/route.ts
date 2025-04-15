@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken';
 import { Ngo } from '../../../../lib/models/Ngo';
 import User from '../../../../lib/models/User';
 import { connectDB } from '../../../../lib/config/db';
-import { cookies } from 'next/headers';
 
 // Handle OPTIONS request for CORS preflight
 export async function OPTIONS() {
@@ -37,11 +36,11 @@ export async function POST(req: Request) {
 
     if (!account) {
       return new NextResponse(
-        JSON.stringify({ success: false, message: 'Invalid credentials' }),
+        JSON.stringify({ msg: "Invalid credentials" }),
         { 
           status: 400,
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           }
         }
       );
@@ -51,11 +50,11 @@ export async function POST(req: Request) {
     const isPasswordValid = await bcrypt.compare(password, account.password);
     if (!isPasswordValid) {
       return new NextResponse(
-        JSON.stringify({ success: false, message: 'Invalid credentials' }),
+        JSON.stringify({ msg: "Invalid credentials" }),
         { 
           status: 400,
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           }
         }
       );
@@ -68,11 +67,10 @@ export async function POST(req: Request) {
       { expiresIn: '7d' }
     );
 
-    // Create response
+    // Create response with cookie
     const response = new NextResponse(
       JSON.stringify({
-        success: true,
-        message: 'Login successful',
+        msg: "Login successful",
         type,
         token
       }),
@@ -80,33 +78,21 @@ export async function POST(req: Request) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
+          'Set-Cookie': `token=${token}; Path=/; HttpOnly; Secure=${process.env.NODE_ENV === 'production'}; SameSite=Strict; Max-Age=${7 * 24 * 60 * 60}`
         }
       }
     );
-
-    // Set cookie
-    const cookieStore = cookies();
-    cookieStore.set('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60,
-      path: '/'
-    });
 
     return response;
 
   } catch (error: any) {
     console.error('Login error:', error);
     return new NextResponse(
-      JSON.stringify({ 
-        success: false, 
-        message: 'Server error', 
-      }),
+      JSON.stringify({ msg: "Server error" }),
       {
         status: 500,
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         }
       }
     );
