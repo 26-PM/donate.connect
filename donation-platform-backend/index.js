@@ -10,10 +10,12 @@ connectDB();
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+
 app.use(cors({
-  origin: '*', // Allow all origins
-  credentials: true // if you plan to send cookies/auth headers
+  origin: "https://donateconnect.vercel.app",
+  credentials: true // if using cookies or Authorization headers
 }));
+
 
 const authRoutes = require("./Routes/authRoutes");
 app.use("/api/auth", authRoutes);
