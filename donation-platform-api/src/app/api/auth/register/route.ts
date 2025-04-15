@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { Ngo } from '@/lib/models/Ngo';
-import { connectDB } from '@/lib/config/db';
+import { Ngo } from '../../../../lib/models/Ngo';
+import { connectDB } from '../../../../lib/config/db';
 
 export async function POST(req: Request) {
   try {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { connectDB } from '@/lib/config/db';
-import { authenticateToken } from '@/lib/middleware/auth';
-import Donation from '@/lib/models/Donation';
+import { connectDB } from '../../../lib/config/db';
+import { authenticateToken } from '../../../lib/middleware/auth';
+import Donation from '../../../lib/models/Donation';
 
 // GET all donations
 export async function GET(req: Request) {
