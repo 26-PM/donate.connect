@@ -195,7 +195,7 @@ export default function DonorDashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium mb-1">NGO:</p>
-                    <p className="text-sm">{donation.ngo.firstName} {donation.ngo.lastName}</p>
+                    {/* <p className="text-sm">{donation.ngo.firstName} {donation.ngo.lastName}</p> */}
                   </div>
                   {donation.pickupDate && (
                     <div className="flex items-center gap-2 text-sm">
