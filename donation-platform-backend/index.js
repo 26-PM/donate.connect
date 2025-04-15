@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use(cors({
-  origin: ['https://donateconnect-kye5bxpmj-26-pms-projects.vercel.app', 'http://localhost:3000', 'http://localhost:3001'],
+  origin: ['https://donateconnect-kye5bxpmj-26-pms-projects.vercel.app', 'https://donateconnect.vercel.app/', 'http://localhost:3000', 'http://localhost:3001'],
   credentials: true // if using cookies or Authorization headers
 }));
 
