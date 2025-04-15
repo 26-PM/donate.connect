@@ -307,12 +307,13 @@ export default function DonatePage() {
           withCredentials: true
         }
       );
+      console.log(response.data);
       if (response.data.success) {
         toast({
           title: "Success!",
           description: "Your donation has been submitted successfully.",
         });
-        router.push("/donor/donations");
+        router.push("/donor/dashboard");
       }
     } catch (error) {
       console.error("Submission error:", error);

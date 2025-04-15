@@ -98,7 +98,7 @@ const createDonation = async (req, res) => {
       to: donor.email,
       subject: "Donation Confirmation",
       html: `
-        <p>Hi ${donor.name},</p>
+        <p>Hi ${donor.firstName} ${donor.lastName},</p>
         <p>Your donation request to ${ngoData.name} has been received. Here are the details:</p>
         <ul>
           ${items.map(item => `<li>${item.quantity} ${item.itemName}</li>`).join('')}
@@ -144,13 +144,13 @@ const createDonation = async (req, res) => {
     // Send SMS to donor
     await sendSMS({
       to: donor.mobile,
-      body: `Hi ${donor.name}, your donation request to ${ngoData.name} has been received. The NGO will contact you soon for pickup.`
+      body: `Hi ${donor.firstName} ${donor.lastName}, your donation request to ${ngoData.name} has been received. The NGO will contact you soon for pickup.`
     });
 
     // Send SMS to NGO
     await sendSMS({
       to: ngoData.mobile,
-      body: `New donation request from ${donor.name}. Please check your email for details.`
+      body: `New donation request from ${donor.firstName} ${donor.lastName}. Please check your email for details.`
     });
 
     res.status(201).json({ 
