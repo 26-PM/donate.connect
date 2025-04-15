@@ -109,12 +109,14 @@ export default function NGOsPage() {
         const ngosWithImages = (res.data.data || []).map((ngo: any, index: number) => ({
           ...ngo,
           imageUrl: ngoImages[index % ngoImages.length] || fallbackImage,
-          // Add mock coordinates for demo purposes - in production these would come from your backend
           coordinates: ngo.coordinates || {
             lat: 40.7128 + (Math.random() * 2 - 1),
             lng: -74.0060 + (Math.random() * 2 - 1)
-          }
+          },
+          location: ngo.location || "Unknown location",
+          needs: ngo.needs || [],
         }))
+        
         setNgos(ngosWithImages)
         console.log(res.data.data)
       } catch (err) {
