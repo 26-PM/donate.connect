@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, ArrowRight, Camera, Check, Clock, Gift, MapPin, Plus, Trash2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
@@ -50,6 +50,14 @@ interface NGOData {
 }
 
 export default function DonatePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DonateContent />
+    </Suspense>
+  )
+}
+
+function DonateContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const ngoId = searchParams.get('ngoId')
