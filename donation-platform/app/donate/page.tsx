@@ -208,7 +208,7 @@ function DonateContent() {
                 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
                 
                 const result = await model.generateContent([
-                  "Analyze this image and describe the item in detail, including its condition, material, and any visible damage or wear. Be specific about the item's current state.",
+                  "Analyze this image and describe the item in 2 or 3 lines, including its condition, material, and any visible damage or wear. Be specific about the item's current state.",
                   {
                     inlineData: {
                       data: base64Image.split(",")[1],
