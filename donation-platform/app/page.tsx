@@ -14,6 +14,7 @@ export default function LandingPage() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showRealTestimonials, setShowRealTestimonials] = useState(false);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -50,6 +51,10 @@ export default function LandingPage() {
     setIsDarkMode(!isDarkMode);
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
@@ -58,6 +63,38 @@ export default function LandingPage() {
             <Gift className="h-6 w-6 text-primary" />
             <span>DonateConnect</span>
           </div>
+          
+          {/* Mobile menu button */}
+          <button
+            onClick={toggleMobileMenu}
+            className="md:hidden p-2 rounded-lg hover:bg-muted"
+            aria-label="Toggle menu"
+          >
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {isMobileMenuOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
+            </svg>
+          </button>
+
+          {/* Desktop navigation */}
           <nav className="hidden md:flex gap-6">
             <Link href="#how-it-works" className="text-sm font-medium hover:text-primary">
               How It Works
@@ -72,7 +109,36 @@ export default function LandingPage() {
               Top NGOs
             </Link>
           </nav>
-          <div className="flex items-center gap-4">
+
+          {/* Mobile navigation */}
+          {isMobileMenuOpen && (
+            <div className="absolute top-16 left-0 right-0 bg-background border-b md:hidden">
+              <nav className="container py-4 flex flex-col gap-4">
+                <Link href="#how-it-works" className="text-sm font-medium hover:text-primary">
+                  How It Works
+                </Link>
+                <Link href="#why-donate" className="text-sm font-medium hover:text-primary">
+                  Why Donate
+                </Link>
+                <Link href="#testimonials" className="text-sm font-medium hover:text-primary">
+                  Testimonials
+                </Link>
+                <Link href="#top-ngos" className="text-sm font-medium hover:text-primary">
+                  Top NGOs
+                </Link>
+                <div className="flex flex-col gap-2 pt-2 border-t">
+                  <Link href="/login" className="w-full">
+                    <Button variant="outline" className="w-full">Login</Button>
+                  </Link>
+                  <Link href="/signup" className="w-full">
+                    <Button className="w-full">Sign Up</Button>
+                  </Link>
+                </div>
+              </nav>
+            </div>
+          )}
+
+          <div className="hidden md:flex items-center gap-4">
             <button
               onClick={toggleDarkMode}
               className="p-2 rounded-full border hover:bg-muted"
@@ -110,12 +176,12 @@ export default function LandingPage() {
               />
             </div>
           </div>
-          <div className="container relative z-10 py-24 md:py-32 lg:py-40">
-            <div className="flex flex-col items-center text-center space-y-8 max-w-3xl mx-auto">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
+          <div className="container relative z-10 py-16 sm:py-24 md:py-32 lg:py-40">
+            <div className="flex flex-col items-center text-center space-y-6 sm:space-y-8 max-w-3xl mx-auto px-4 sm:px-6">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
                 Donate with a Click, Impact a Life
               </h1>
-              <p className="text-xl text-muted-foreground max-w-2xl">
+              <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl">
                 Connect with nearby NGOs and make a difference in your community by donating items you no longer need.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
@@ -135,15 +201,15 @@ export default function LandingPage() {
         </section>
 
         {/* How It Works Section */}
-        <section id="how-it-works" className="bg-muted/50 py-16 md:py-24">
-          <div className="container">
+        <section id="how-it-works" className="bg-muted/50 py-12 sm:py-16 md:py-24">
+          <div className="container px-4 sm:px-6">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold tracking-tight">How It Works</h2>
               <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
                 Our platform makes donating simple and efficient, connecting donors directly with NGOs in need.
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
               <div className="bg-background rounded-lg p-6 shadow-sm flex flex-col items-center text-center">
                 <div className="bg-primary/10 p-3 rounded-full mb-4">
                   <Gift className="h-8 w-8 text-primary" />
@@ -176,15 +242,15 @@ export default function LandingPage() {
         </section>
 
         {/* Why Donate Section */}
-        <section id="why-donate" className="py-16 md:py-24">
-          <div className="container">
+        <section id="why-donate" className="py-12 sm:py-16 md:py-24">
+          <div className="container px-4 sm:px-6">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold tracking-tight">Why Donate</h2>
               <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
                 Your donations make a real difference in people's lives while promoting sustainability.
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
               <div className="border rounded-lg p-6">
                 <h3 className="text-xl font-bold mb-4">Help Communities</h3>
                 <p className="text-muted-foreground">
@@ -211,8 +277,8 @@ export default function LandingPage() {
         </section>
 
         {/* Testimonials Section */}
-        <section id="testimonials" className="bg-muted/50 py-16 md:py-24">
-          <div className="container">
+        <section id="testimonials" className="bg-muted/50 py-12 sm:py-16 md:py-24">
+          <div className="container px-4 sm:px-6">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold tracking-tight">What People Say</h2>
               <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
@@ -225,7 +291,7 @@ export default function LandingPage() {
                 {showRealTestimonials ? "Show Fake Testimonials" : "Show Real Testimonials"}
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
               {testimonials.map((testimonial) => (
                 <div key={testimonial.id} className="bg-background rounded-lg p-6 shadow-sm">
                   <p className="text-muted-foreground mb-4">"{testimonial.text}"</p>
@@ -247,15 +313,15 @@ export default function LandingPage() {
         </section>
 
         {/* Top NGOs Section */}
-        <section id="top-ngos" className="py-16 md:py-24">
-          <div className="container">
+        <section id="top-ngos" className="py-12 sm:py-16 md:py-24">
+          <div className="container px-4 sm:px-6">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold tracking-tight">Featured NGOs</h2>
               <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
                 These organizations are making a significant impact in their communities.
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
               {[
                 {
                   name: "Hope Foundation",
@@ -295,8 +361,8 @@ export default function LandingPage() {
         </section>
       </main>
       <footer className="border-t bg-muted/50">
-        <div className="container py-8 md:py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="container py-8 md:py-12 px-4 sm:px-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-2 font-bold mb-4">
                 <Gift className="h-6 w-6 text-primary" />
