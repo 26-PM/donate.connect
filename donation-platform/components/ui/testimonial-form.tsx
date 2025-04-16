@@ -5,7 +5,7 @@ const TestimonialForm = () => {
   const [author, setAuthor] = useState('');
   const [message, setMessage] = useState('');
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const response = await fetch('/api/testimonials', {
@@ -48,7 +48,7 @@ const TestimonialForm = () => {
       />
       <button
         type="submit"
-        className="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full bg-black text-white font-bold py-2 px-4 rounded hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black-500"
       >
         Submit
       </button>
