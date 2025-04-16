@@ -24,6 +24,35 @@ interface DecodedToken {
   exp: number;
 }
 
+interface DonationItem {
+  category: string;
+  quantity: string;
+  description: string;
+  images: Array<{
+    url: string;
+    analysis?: string;
+  }>;
+}
+
+interface NGOData {
+  itemsAccepted: string[];
+  name: string;
+}
+
+interface NGOApiResponse {
+  success: boolean;
+  data: {
+    itemsAccepted: string[];
+    name: string;
+    [key: string]: any;
+  };
+}
+
+interface DonationApiResponse {
+  success: boolean;
+  data: any;
+}
+
 // Donation categories with icons
 const categories = [
   { id: "Clothes", name: "Clothes", icon: "👕" },
@@ -33,21 +62,6 @@ const categories = [
   { id: "Electronics", name: "Electronics", icon: "📱" },
   { id: "Others", name: "Others", icon: "📦" },
 ]
-
-interface DonationItem {
-  category: string
-  quantity: string
-  description: string
-  images: Array<{
-    url: string
-    analysis?: string
-  }>
-}
-
-interface NGOData {
-  itemsAccepted: string[];
-  name: string;
-}
 
 export default function DonatePage() {
   return (
@@ -89,7 +103,7 @@ function DonateContent() {
     // Fetch NGO details including accepted items
     const fetchNGODetails = async () => {
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/ngos/${ngoId}`)
+        const response = await axios.get<NGOApiResponse>(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/ngos/${ngoId}`)
         setNgoData({
           itemsAccepted: response.data.data.itemsAccepted,
           name: response.data.data.name
@@ -179,13 +193,8 @@ function DonateContent() {
         return;
       }
 
-      toast({
-        title: "Processing images",
-        description: "Uploading and analyzing your images...",
-      });
-
       // Process each file
-      const uploadPromises = Array.from(files).map(async (file) => {
+      const uploadPromises = Array.from(files).map(async (file: File) => {
         return new Promise<{ url: string; analysis: string }>(async (resolve) => {
           const reader = new FileReader();
           reader.onload = async (e) => {
@@ -193,10 +202,8 @@ function DonateContent() {
               const base64Image = e.target.result as string;
               
               try {
-                // Upload to Cloudinary first
                 const cloudinaryUrl = await uploadToCloudinary(base64Image);
                 
-                // Get image analysis
                 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || "");
                 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
                 
@@ -230,15 +237,10 @@ function DonateContent() {
       });
 
       const processedImages = await Promise.all(uploadPromises);
-      setCurrentItem(prevItem => ({
+      setCurrentItem((prevItem: DonationItem) => ({
         ...prevItem,
         images: [...prevItem.images, ...processedImages]
       }));
-
-      toast({
-        title: "Success",
-        description: "Images uploaded and analyzed successfully!",
-      });
 
     } catch (error) {
       setImageUploadError("Failed to upload images. Please try again.");
@@ -254,48 +256,51 @@ function DonateContent() {
   
   const handleSubmit = async () => {
     try {
-      setIsLoading(true)
-      
+      setIsLoading(true);
+
       if (!address) {
         toast({
           title: "Missing address",
           description: "Please provide a pickup address",
           variant: "destructive",
-        })
-        return
+        });
+        setIsLoading(false);
+        return;
       }
-      
-      const token = localStorage.getItem('token')
-      const decodedToken = token ? jwtDecode<DecodedToken>(token) : null
-      const userId = decodedToken?.id
-      if (!userId) {
-        toast({
-          title: "Authentication Error",
-          description: "Please login again",
-          variant: "destructive",
-        })
-        return
-      }
-      
-      // Process items with proper format
-      const processedItems = selectedItems.map(item => ({
-        itemName: item.category,  // Using category as itemName
-        quantity: parseInt(item.quantity),
-        description: item.description || "",
-        images: item.images || []  // Ensure images array is included
-      }));
-      
-      // Split address into components
-      const addressParts: string[] = address.split(',').map((part: string) => part.trim())
+
+      // Validate address format
+      const addressParts = address.split(',').map((part) => part.trim());
       if (addressParts.length < 5) {
         toast({
           title: "Invalid address format",
           description: "Please provide address in format: Street, Landmark, City, State, Pincode",
           variant: "destructive",
-        })
-        return
+        });
+        setIsLoading(false);
+        return;
       }
-      
+
+      const token = localStorage.getItem('token');
+      const decodedToken = token ? jwtDecode<DecodedToken>(token) : null;
+      const userId = decodedToken?.id;
+      if (!userId) {
+        toast({
+          title: "Authentication Error",
+          description: "Please login again",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Process items with proper format
+      const processedItems = selectedItems.map((item: DonationItem) => ({
+        itemName: item.category, // Using category as itemName
+        quantity: parseInt(item.quantity),
+        description: item.description || "",
+        images: item.images || [], // Ensure images array is included
+      }));
+
       const donationData = {
         userId: userId,
         ngo: ngoId,
@@ -303,19 +308,18 @@ function DonateContent() {
         pickupOption: pickupOption,
         pickupDate: pickupOption === "asap" ? null : pickupDate,
         pickupTime: pickupOption === "asap" ? null : pickupTime,
-        pickupAddress: address,  // Send the original address string
-        notes: ""
+        pickupAddress: address, // Send the original address string
+        notes: "",
       };
 
-      console.log(donationData);
-      const response = await axios.post(
+      const response = await axios.post<DonationApiResponse>(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/donate`,
         donationData,
         {
-          withCredentials: true
+          withCredentials: true,
         }
       );
-      console.log(response.data);
+
       if (response.data.success) {
         toast({
           title: "Success!",
@@ -333,6 +337,45 @@ function DonateContent() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Geolocation not supported",
+        description: "Your browser does not support location tracking.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await response.json();
+          const locationName = data.display_name || "Unknown Location";
+          setAddress(locationName);
+        } catch (error) {
+          toast({
+            title: "Location error",
+            description: "Failed to fetch address from location.",
+            variant: "destructive",
+          });
+        }
+      },
+      (error) => {
+        toast({
+          title: "Location error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    );
   };
 
   const nextStep = () => {
@@ -704,37 +747,7 @@ function DonateContent() {
                       variant="ghost"
                       size="sm"
                       className="h-8 text-xs"
-                      onClick={() => {
-                        if (!navigator.geolocation) {
-                          toast({
-                            title: "Geolocation not supported",
-                            description: "Your browser does not support location tracking.",
-                          });
-                          return;
-                        }
-                        navigator.geolocation.getCurrentPosition(
-                          async (position) => {
-                            const { latitude, longitude } = position.coords;
-                            
-                            try {
-                              const response = await fetch(
-                                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-                              );
-                              const data = await response.json();
-                              const locationName = data.display_name || "Unknown Location";
-                              setAddress(locationName);
-                            } catch (error) {
-                              setAddress("Failed to fetch address");
-                            }
-                          },
-                          (error) => {
-                            toast({
-                              title: "Location error",
-                              description: error.message,
-                            });
-                          }
-                        );
-                      }}
+                      onClick={handleUseCurrentLocation}
                     >
                       <MapPin className="mr-1 h-3 w-3" />
                       Use Current Location
