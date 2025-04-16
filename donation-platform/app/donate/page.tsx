@@ -268,21 +268,21 @@ function DonateContent() {
         return;
       }
 
-      // Validate address format
-      const addressParts = address.split(',').map((part) => part.trim());
-      if (addressParts.length < 5) {
+      // Validate user is logged in
+      const token = localStorage.getItem('token');
+      if (!token) {
         toast({
-          title: "Invalid address format",
-          description: "Please provide address in format: Street, Landmark, City, State, Pincode",
+          title: "Authentication Error",
+          description: "Please login to submit a donation",
           variant: "destructive",
         });
-        setIsLoading(false);
+        router.push('/login');
         return;
       }
 
-      const token = localStorage.getItem('token');
       const decodedToken = token ? jwtDecode<DecodedToken>(token) : null;
       const userId = decodedToken?.id;
+
       if (!userId) {
         toast({
           title: "Authentication Error",
@@ -295,37 +295,71 @@ function DonateContent() {
 
       // Process items with proper format
       const processedItems = selectedItems.map((item: DonationItem) => ({
-        itemName: item.category, // Using category as itemName
+        itemName: item.category,
         quantity: parseInt(item.quantity),
         description: item.description || "",
-        images: item.images || [], // Ensure images array is included
+        images: item.images || [],
       }));
 
       const donationData = {
-        userId: userId,
+        userId,
         ngo: ngoId,
         items: processedItems,
-        pickupOption: pickupOption,
+        pickupOption,
         pickupDate: pickupOption === "asap" ? null : pickupDate,
         pickupTime: pickupOption === "asap" ? null : pickupTime,
-        pickupAddress: address, // Send the original address string
+        pickupAddress: address,
         notes: "",
       };
 
-      const response = await axios.post<DonationApiResponse>(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/donate`,
-        donationData,
-        {
-          withCredentials: true,
-        }
-      );
+      console.log('Submitting donation:', {
+        url: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/donate`,
+        data: donationData
+      });
 
-      if (response.data.success) {
-        toast({
-          title: "Success!",
-          description: "Your donation has been submitted successfully.",
+      try {
+        const response = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/donate`,
+          donationData,
+          {
+            withCredentials: true,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+
+        if (response.data.success) {
+          toast({
+            title: "Success!",
+            description: "Your donation has been submitted successfully.",
+          });
+          router.push("/donor/dashboard");
+        } else {
+          throw new Error(response.data.message || 'Failed to submit donation');
+        }
+      } catch (axiosError: any) {
+        console.error('Axios error:', {
+          message: axiosError.message,
+          response: axiosError.response?.data,
+          status: axiosError.response?.status
         });
-        router.push("/donor/dashboard");
+        
+        let errorMessage = "Failed to submit donation. Please try again.";
+        
+        if (axiosError.response?.status === 401) {
+          errorMessage = "Please login again to submit your donation.";
+          router.push('/login');
+        } else if (axiosError.response?.data?.message) {
+          errorMessage = axiosError.response.data.message;
+        }
+
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Submission error:", error);
