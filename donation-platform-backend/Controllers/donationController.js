@@ -11,7 +11,15 @@ const createDonation = async (req, res) => {
     const { ngo, items, pickupAddress, pickupOption, pickupDate, pickupTime, notes, userId } = req.body;
 
     // Add CORS headers
-    res.header('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+      'https://donateconnect-kye5bxpmj-26-pms-projects.vercel.app',
+      'https://donateconnect.vercel.app',
+      'http://localhost:3000',
+      'http://localhost:3001'
+    ];
+    
+    res.header('Access-Control-Allow-Origin', allowedOrigins.includes(origin) ? origin : allowedOrigins[0]);
     res.header('Access-Control-Allow-Methods', 'POST');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
