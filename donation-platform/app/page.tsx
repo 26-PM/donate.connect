@@ -141,7 +141,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-4">
             <button
               onClick={toggleDarkMode}
-              className="p-2 rounded-full border hover:bg-muted"
+              className="p-2 rounded-full border dark:border-border hover:bg-muted/80 dark:hover:bg-muted/20 transition-colors"
               aria-label="Toggle Dark Mode"
             >
               {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -164,7 +164,7 @@ export default function LandingPage() {
                 src="https://plus.unsplash.com/premium_photo-1738416571378-46793a101767?q=80&w=3174&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                 alt="Digital donation platform connecting donors and NGOs"
                 fill
-                className="object-cover opacity-20"
+                className="object-cover opacity-20 dark:opacity-10"
                 priority
                 unoptimized={true}
                 style={{
@@ -201,7 +201,7 @@ export default function LandingPage() {
         </section>
 
         {/* How It Works Section */}
-        <section id="how-it-works" className="bg-muted/50 py-12 sm:py-16 md:py-24">
+        <section id="how-it-works" className="bg-muted/50 dark:bg-muted/10 py-12 sm:py-16 md:py-24">
           <div className="container px-4 sm:px-6">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold tracking-tight">How It Works</h2>
@@ -210,7 +210,7 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
-              <div className="bg-background rounded-lg p-6 shadow-sm flex flex-col items-center text-center">
+              <div className="bg-background rounded-lg p-6 shadow-sm dark:border dark:border-border flex flex-col items-center text-center">
                 <div className="bg-primary/10 p-3 rounded-full mb-4">
                   <Gift className="h-8 w-8 text-primary" />
                 </div>
@@ -219,7 +219,7 @@ export default function LandingPage() {
                   Choose from categories like food, clothes, books, and more. Add details and photos of your items.
                 </p>
               </div>
-              <div className="bg-background rounded-lg p-6 shadow-sm flex flex-col items-center text-center">
+              <div className="bg-background rounded-lg p-6 shadow-sm dark:border dark:border-border flex flex-col items-center text-center">
                 <div className="bg-primary/10 p-3 rounded-full mb-4">
                   <Clock className="h-8 w-8 text-primary" />
                 </div>
@@ -228,7 +228,7 @@ export default function LandingPage() {
                   Select a convenient date and time for the NGO to collect your donations.
                 </p>
               </div>
-              <div className="bg-background rounded-lg p-6 shadow-sm flex flex-col items-center text-center">
+              <div className="bg-background rounded-lg p-6 shadow-sm dark:border dark:border-border flex flex-col items-center text-center">
                 <div className="bg-primary/10 p-3 rounded-full mb-4">
                   <CheckCircle className="h-8 w-8 text-primary" />
                 </div>
@@ -251,21 +251,21 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
-              <div className="border rounded-lg p-6">
+              <div className="border dark:border-border rounded-lg p-6">
                 <h3 className="text-xl font-bold mb-4">Help Communities</h3>
                 <p className="text-muted-foreground">
                   Your donations directly support underprivileged communities, providing essential items to those who
                   need them most.
                 </p>
               </div>
-              <div className="border rounded-lg p-6">
+              <div className="border dark:border-border rounded-lg p-6">
                 <h3 className="text-xl font-bold mb-4">Reduce Waste</h3>
                 <p className="text-muted-foreground">
                   Give your unused items a second life instead of throwing them away, promoting sustainability and
                   reducing landfill waste.
                 </p>
               </div>
-              <div className="border rounded-lg p-6">
+              <div className="border dark:border-border rounded-lg p-6">
                 <h3 className="text-xl font-bold mb-4">Hassle-Free Process</h3>
                 <p className="text-muted-foreground">
                   Our platform makes donating easy with a simple process, convenient pickup options, and transparent
@@ -277,7 +277,7 @@ export default function LandingPage() {
         </section>
 
         {/* Testimonials Section */}
-        <section id="testimonials" className="bg-muted/50 py-12 sm:py-16 md:py-24">
+        <section id="testimonials" className="bg-muted/50 dark:bg-muted/10 py-12 sm:py-16 md:py-24">
           <div className="container px-4 sm:px-6">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold tracking-tight">What People Say</h2>
@@ -293,10 +293,10 @@ export default function LandingPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
               {testimonials.map((testimonial) => (
-                <div key={testimonial.id} className="bg-background rounded-lg p-6 shadow-sm">
+                <div key={testimonial.id} className="bg-background rounded-lg p-6 shadow-sm dark:border dark:border-border">
                   <p className="text-muted-foreground mb-4">"{testimonial.text}"</p>
                   <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                    <div className="h-12 w-12 rounded-full bg-muted dark:bg-muted/50 flex items-center justify-center">
                       <span className="font-medium">{testimonial.author[0]}</span>
                     </div>
                     <div>
@@ -339,7 +339,7 @@ export default function LandingPage() {
                   image: "https://plus.unsplash.com/premium_photo-1658506620365-925c827c6fdc?q=80&w=3138&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
                 },
               ].map((ngo, index) => (
-                <div key={index} className="border rounded-lg overflow-hidden">
+                <div key={index} className="border dark:border-border rounded-lg overflow-hidden">
                   <Image
                     src={ngo.image || "/placeholder.svg"}
                     alt={ngo.name}
@@ -360,7 +360,7 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
-      <footer className="border-t bg-muted/50">
+      <footer className="border-t dark:border-border bg-muted/50 dark:bg-muted/10">
         <div className="container py-8 md:py-12 px-4 sm:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
             <div>
@@ -426,17 +426,7 @@ export default function LandingPage() {
               <h3 className="font-medium mb-4">Contact Us</h3>
               <ul className="space-y-2 text-sm">
                 <li className="text-muted-foreground">Email: info@donateconnect.com</li>
-                <li className="text-muted-foreground">Phone: +1 (555) 123-4567</li>
-                <li className="flex gap-4 mt-4">
-                  {["twitter", "facebook", "instagram", "linkedin"].map((social) => (
-                    <Link key={social} href="#" className="text-muted-foreground hover:text-foreground">
-                      <div className="h-8 w-8 border rounded-full flex items-center justify-center">
-                        <span className="sr-only">{social}</span>
-                        <div className="h-4 w-4" />
-                      </div>
-                    </Link>
-                  ))}
-                </li>
+                <li className="text-muted-foreground">Phone: +91 1800555123</li>
               </ul>
             </div>
           </div>
