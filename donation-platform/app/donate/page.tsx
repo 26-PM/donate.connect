@@ -53,6 +53,12 @@ interface DonationApiResponse {
   data: any;
 }
 
+interface DonationResponse {
+  success: boolean;
+  message: string;
+  data?: any;
+}
+
 // Donation categories with icons
 const categories = [
   { id: "Clothes", name: "Clothes", icon: "👕" },
@@ -257,6 +263,7 @@ function DonateContent() {
   const handleSubmit = async () => {
     try {
       setIsLoading(true);
+      console.log('Starting donation submission...');
 
       if (!address) {
         toast({
@@ -318,7 +325,7 @@ function DonateContent() {
       });
 
       try {
-        const response = await axios.post(
+        const response = await axios.post<DonationResponse>(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/donate`,
           donationData,
           {
@@ -329,6 +336,7 @@ function DonateContent() {
             }
           }
         );
+        console.log('Donation submission response:', response.data);
 
         if (response.data.success) {
           toast({
@@ -340,10 +348,16 @@ function DonateContent() {
           throw new Error(response.data.message || 'Failed to submit donation');
         }
       } catch (axiosError: any) {
-        console.error('Axios error:', {
+        console.error('Axios error details:', {
           message: axiosError.message,
           response: axiosError.response?.data,
-          status: axiosError.response?.status
+          status: axiosError.response?.status,
+          config: {
+            url: axiosError.config?.url,
+            method: axiosError.config?.method,
+            headers: axiosError.config?.headers,
+            data: axiosError.config?.data
+          }
         });
         
         let errorMessage = "Failed to submit donation. Please try again.";
@@ -362,7 +376,7 @@ function DonateContent() {
         });
       }
     } catch (error) {
-      console.error("Submission error:", error);
+      console.error("General submission error:", error);
       toast({
         title: "Error",
         description: "Failed to submit donation. Please try again.",
