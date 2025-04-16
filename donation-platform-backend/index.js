@@ -26,6 +26,9 @@ app.use("/api/donations", donationRoutes);
 const userSideRoutes = require("./Routes/userSideRoutes");
 app.use("/api/user", userSideRoutes);
 
+const testimonialRoutes = require("./Routes/testimonialRoutes");
+app.use("/api", testimonialRoutes);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

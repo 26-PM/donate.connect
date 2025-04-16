@@ -6,17 +6,38 @@ import Image from "next/image";
 import { ArrowRight, Gift, Clock, CheckCircle, Star, Sun, Moon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import TestimonialForm from '@/components/ui/testimonial-form';
 
 export default function LandingPage() {
+  type Testimonial = { id: number; text: string; author: string };
+
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showRealTestimonials, setShowRealTestimonials] = useState(false);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") {
-      document.documentElement.classList.add("dark");
-      setIsDarkMode(true);
+    if (typeof window !== "undefined") {
+      const savedTheme = localStorage.getItem("theme");
+      if (savedTheme === "dark") {
+        document.documentElement.classList.add("dark");
+        setIsDarkMode(true);
+      }
     }
   }, []);
+
+  useEffect(() => {
+    if (showRealTestimonials) {
+      fetch("/api/testimonials") // Replace with your actual API endpoint
+        .then((response) => response.json())
+        .then((data) => setTestimonials(data))
+        .catch((error) => console.error("Error fetching testimonials:", error));
+    } else {
+      setTestimonials([
+        { id: 1, text: "This is a fake testimonial.", author: "John Doe" },
+        { id: 2, text: "Another fake testimonial.", author: "Jane Smith" },
+      ]);
+    }
+  }, [showRealTestimonials]);
 
   const toggleDarkMode = () => {
     if (isDarkMode) {
@@ -197,53 +218,30 @@ export default function LandingPage() {
               <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
                 Hear from donors and NGOs who have used our platform to make a difference.
               </p>
+              <button
+                onClick={() => setShowRealTestimonials(!showRealTestimonials)}
+                className="mt-4 px-4 py-2 bg-primary text-white rounded"
+              >
+                {showRealTestimonials ? "Show Fake Testimonials" : "Show Real Testimonials"}
+              </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-background rounded-lg p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  {Array(5)
-                    .fill(0)
-                    .map((_, i) => (
-                      <Star key={i} className="h-5 w-5 fill-primary text-primary" />
-                    ))}
-                </div>
-                <p className="text-muted-foreground mb-4">
-                  "I had so many clothes that I no longer wore. DonateConnect made it incredibly easy to donate them to
-                  a local shelter. The pickup was prompt, and I received updates about how my donation helped others."
-                </p>
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                    <span className="font-medium">SM</span>
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Sarah Miller</h4>
-                    <p className="text-sm text-muted-foreground">Donor</p>
+              {testimonials.map((testimonial) => (
+                <div key={testimonial.id} className="bg-background rounded-lg p-6 shadow-sm">
+                  <p className="text-muted-foreground mb-4">"{testimonial.text}"</p>
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                      <span className="font-medium">{testimonial.author[0]}</span>
+                    </div>
+                    <div>
+                      <h4 className="font-medium">{testimonial.author}</h4>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="bg-background rounded-lg p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  {Array(5)
-                    .fill(0)
-                    .map((_, i) => (
-                      <Star key={i} className="h-5 w-5 fill-primary text-primary" />
-                    ))}
-                </div>
-                <p className="text-muted-foreground mb-4">
-                  "As a small NGO, we struggled to find consistent donations. This platform has connected us with
-                  generous donors in our area, allowing us to help more families in need. The process is streamlined and
-                  efficient."
-                </p>
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                    <span className="font-medium">RJ</span>
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Rahul Joshi</h4>
-                    <p className="text-sm text-muted-foreground">Hope Foundation NGO</p>
-                  </div>
-                </div>
-              </div>
+              ))}
+            </div>
+            <div className="mt-12">
+              <TestimonialForm />
             </div>
           </div>
         </section>
@@ -385,4 +383,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
