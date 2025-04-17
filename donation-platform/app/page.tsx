@@ -284,12 +284,12 @@ export default function LandingPage() {
               <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
                 Hear from donors and NGOs who have used our platform to make a difference.
               </p>
-              <button
+              {/* <button
                 onClick={() => setShowRealTestimonials(!showRealTestimonials)}
                 className="mt-4 px-4 py-2 bg-primary text-white rounded"
               >
                 {showRealTestimonials ? "Show Fake Testimonials" : "Show Real Testimonials"}
-              </button>
+              </button> */}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
               {testimonials.map((testimonial) => (
