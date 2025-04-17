@@ -60,8 +60,8 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2 font-bold">
-            <Gift className="h-6 w-6 text-primary" />
-            <span>DonateConnect</span>
+            <Gift className="h-6 w-6 text-primary animate-bounce" />
+            <span className="animate-bounce">DonateConnect</span>
           </div>
           
           {/* Mobile menu button */}
@@ -141,7 +141,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-4">
             <button
               onClick={toggleDarkMode}
-              className="p-2 rounded-full border dark:border-border hover:bg-muted/80 dark:hover:bg-muted/20 transition-colors"
+              className="animate-bounce p-2 rounded-full border dark:border-border hover:bg-muted/80 dark:hover:bg-muted/20 transition-colors"
               aria-label="Toggle Dark Mode"
             >
               {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -178,7 +178,7 @@ export default function LandingPage() {
           </div>
           <div className="container relative z-10 py-16 sm:py-24 md:py-32 lg:py-40">
             <div className="flex flex-col items-center text-center space-y-6 sm:space-y-8 max-w-3xl mx-auto px-4 sm:px-6">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
+              <h1 className="animate-bounce text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
                 Donate with a Click, Impact a Life
               </h1>
               <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl">
@@ -186,8 +186,8 @@ export default function LandingPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/donate">
-                  <Button size="lg" className="gap-2">
-                    Donate Now <ArrowRight className="h-4 w-4" />
+                  <Button size="lg" className="gap-2 animate-bounce">
+                    Donate Now <ArrowRight className="h-4 w-4 animate-bounce" />
                   </Button>
                 </Link>
                 <Link href="/signup">
@@ -245,7 +245,7 @@ export default function LandingPage() {
         <section id="why-donate" className="py-12 sm:py-16 md:py-24">
           <div className="container px-4 sm:px-6">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold tracking-tight">Why Donate</h2>
+              <h2 className="animate-bounce text-3xl font-bold tracking-tight">Why Donate</h2>
               <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
                 Your donations make a real difference in people's lives while promoting sustainability.
               </p>
@@ -316,7 +316,7 @@ export default function LandingPage() {
         <section id="top-ngos" className="py-12 sm:py-16 md:py-24">
           <div className="container px-4 sm:px-6">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold tracking-tight">Featured NGOs</h2>
+              <h2 className="animate-bounce text-3xl font-bold tracking-tight">Featured NGOs</h2>
               <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
                 These organizations are making a significant impact in their communities.
               </p>
