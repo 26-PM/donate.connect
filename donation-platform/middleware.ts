@@ -4,7 +4,7 @@ import { jwtDecode } from 'jwt-decode'
 
 interface DecodedToken {
   id: string
-  type: 'donor' | 'ngo' | 'user'
+  type: string
   exp: number
 }
 
@@ -22,7 +22,8 @@ export function middleware(request: NextRequest) {
   
   // If no token exists, redirect to login
   if (!token) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    const loginUrl = new URL('/login', request.url)
+    return NextResponse.redirect(loginUrl)
   }
   
   try {
@@ -32,35 +33,33 @@ export function middleware(request: NextRequest) {
     
     // Check if token has expired
     if (decoded.exp < currentTime) {
-      return NextResponse.redirect(new URL('/login', request.url))
+      const loginUrl = new URL('/login', request.url)
+      return NextResponse.redirect(loginUrl)
     }
     
     // Check correct role for the path
-    const isDonorPath = path.startsWith('/donor')
-    const isNgoPath = path.startsWith('/ngo')
+    const donorPaths = ['/donor']
+    const ngoPaths = ['/ngo']
     
-    // For donor routes, check if user is a donor
-    if (isDonorPath && decoded.type !== 'user' && decoded.type !== 'donor') {
+    const isDonorPath = donorPaths.some(prefix => path.startsWith(prefix))
+    const isNgoPath = ngoPaths.some(prefix => path.startsWith(prefix))
+    
+    if (isDonorPath && decoded.type !== 'user') {
       return NextResponse.redirect(new URL('/', request.url))
     }
     
-    // For NGO routes, check if user is an NGO
     if (isNgoPath && decoded.type !== 'ngo') {
       return NextResponse.redirect(new URL('/', request.url))
     }
     
-    // User is authenticated and has correct role
     return NextResponse.next()
   } catch (error) {
-    // Invalid token
-    return NextResponse.redirect(new URL('/login', request.url))
+    // If token is invalid, redirect to login
+    const loginUrl = new URL('/login', request.url)
+    return NextResponse.redirect(loginUrl)
   }
 }
 
-// Configure which routes the middleware should run on
 export const config = {
-  matcher: [
-    // Apply to all routes except static files and api
-    '/((?!_next/static|_next/image|favicon.ico).*)',
-  ],
-} 
+  matcher: '/((?!_next/static|_next/image|favicon.ico).*)',
+}

@@ -37,36 +37,42 @@ export default function LoginPage() {
         withCredentials: true,
       })
 
-      // Store token in localStorage
       if (response.data.token) {
+        // Store token in localStorage
         localStorage.setItem('token', response.data.token)
-      }
-      
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
-      })  
-      
+        
+        // Add token to axios default headers for subsequent requests
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`
+        
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        })
 
-      // Redirect based on role
-      if (response.data.type === "user") {
-        router.push("/donor/dashboard")
-      } else if (response.data.type === "ngo") {
-        router.push("/ngo/dashboard")
+        // Wait a bit to ensure token is stored before redirect
+        await new Promise(resolve => setTimeout(resolve, 100))
+
+        // Redirect based on role
+        if (response.data.type === "user") {
+          router.push("/donor/dashboard")
+        } else if (response.data.type === "ngo") {
+          router.push("/ngo/dashboard")
+        } else {
+          router.push("/")
+        }
       } else {
-        router.push("/")
+        throw new Error("No token received")
       }
     } catch (error: any) {
       console.error('Login Error:', error)
       toast({
         title: "Login failed",
-        description:
-          error?.response?.data?.message || "Invalid credentials. Please try again.",
+        description: error?.response?.data?.msg || "Invalid credentials. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setIsLoading(false)
     }
-  
-    setIsLoading(false)
   }
 
   const handleGoogleLogin = async () => {

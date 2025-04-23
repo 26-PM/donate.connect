@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { jwtDecode } from "jwt-decode"
+import axios from "axios"
 
 interface DecodedToken {
   id: string
@@ -23,10 +24,9 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
   useEffect(() => {
     const checkAuth = () => {
       try {
-        // Check for token in localStorage
         const token = localStorage.getItem("token")
         if (!token) {
-          router.push("/login")
+          router.replace("/login")
           return
         }
 
@@ -37,23 +37,26 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
         if (decoded.exp < currentTime) {
           // Token expired
           localStorage.removeItem("token")
-          router.push("/login")
+          router.replace("/login")
           return
         }
 
         // Check if user role is allowed
         if (!allowedRoles.includes(decoded.type)) {
           // User doesn't have required role
-          router.push("/")
+          router.replace("/")
           return
         }
+
+        // Set default Authorization header for axios
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
 
         // User is authenticated and authorized
         setIsAuthorized(true)
       } catch (error) {
         console.error("Authentication error:", error)
         localStorage.removeItem("token")
-        router.push("/login")
+        router.replace("/login")
       } finally {
         setIsLoading(false)
       }
@@ -74,4 +77,4 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
 
   // Return children only if authorized
   return isAuthorized ? <>{children}</> : null
-} 
+}
