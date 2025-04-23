@@ -31,34 +31,41 @@ export default function LoginPage() {
     const email = formData.get("email") as string
     const password = formData.get("password") as string
   
-    const loginData = { email, password }
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, loginData, {
-        withCredentials: true,
-      })
+      const response = await axios.post(
+        `${API_BASE_URL}/api/auth/login`,
+        { email, password },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true
+        }
+      )
 
       if (response.data.token) {
         // Store token in localStorage
         localStorage.setItem('token', response.data.token)
         
-        // Add token to axios default headers for subsequent requests
+        // Configure axios defaults
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`
+        axios.defaults.withCredentials = true
         
         toast({
           title: "Login successful",
-          description: "Welcome back!",
+          description: "Welcome back!"
         })
 
-        // Wait a bit to ensure token is stored before redirect
+        // Force a small delay to ensure token is properly stored
         await new Promise(resolve => setTimeout(resolve, 100))
 
-        // Redirect based on role
+        // Use router.replace instead of push for smoother navigation
         if (response.data.type === "user") {
-          router.push("/donor/dashboard")
+          await router.replace("/donor/dashboard")
         } else if (response.data.type === "ngo") {
-          router.push("/ngo/dashboard")
+          await router.replace("/ngo/dashboard")
         } else {
-          router.push("/")
+          await router.replace("/")
         }
       } else {
         throw new Error("No token received")

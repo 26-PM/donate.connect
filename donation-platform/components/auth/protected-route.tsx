@@ -22,11 +22,11 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
         const token = localStorage.getItem("token")
         if (!token) {
-          router.replace("/login")
+          await router.replace("/login")
           return
         }
 
@@ -37,26 +37,27 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
         if (decoded.exp < currentTime) {
           // Token expired
           localStorage.removeItem("token")
-          router.replace("/login")
+          await router.replace("/login")
           return
         }
 
         // Check if user role is allowed
         if (!allowedRoles.includes(decoded.type)) {
           // User doesn't have required role
-          router.replace("/")
+          await router.replace("/")
           return
         }
 
-        // Set default Authorization header for axios
+        // Set axios default headers
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+        axios.defaults.withCredentials = true
 
         // User is authenticated and authorized
         setIsAuthorized(true)
       } catch (error) {
         console.error("Authentication error:", error)
         localStorage.removeItem("token")
-        router.replace("/login")
+        await router.replace("/login")
       } finally {
         setIsLoading(false)
       }

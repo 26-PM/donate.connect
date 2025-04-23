@@ -9,12 +9,16 @@ interface DecodedToken {
 }
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('token')?.value || request.headers.get('authorization')?.split(' ')[1]
+  // Get token from either cookie or Authorization header
+  const token = request.headers.get('Authorization')?.split(' ')[1] || 
+                request.cookies.get('token')?.value
+                
   const path = request.nextUrl.pathname
   
   // Public paths that don't require authentication
   const publicPaths = ['/', '/login', '/signup', '/api']
-  const isPublicPath = publicPaths.some(publicPath => path === publicPath || path.startsWith('/api/'))
+  const isPublicPath = publicPaths.some(publicPath => 
+    path === publicPath || path.startsWith('/api/') || path.startsWith('/_next/'))
   
   if (isPublicPath) {
     return NextResponse.next()
@@ -22,8 +26,7 @@ export function middleware(request: NextRequest) {
   
   // If no token exists, redirect to login
   if (!token) {
-    const loginUrl = new URL('/login', request.url)
-    return NextResponse.redirect(loginUrl)
+    return NextResponse.redirect(new URL('/login', request.url))
   }
   
   try {
@@ -33,8 +36,7 @@ export function middleware(request: NextRequest) {
     
     // Check if token has expired
     if (decoded.exp < currentTime) {
-      const loginUrl = new URL('/login', request.url)
-      return NextResponse.redirect(loginUrl)
+      return NextResponse.redirect(new URL('/login', request.url))
     }
     
     // Check correct role for the path
@@ -51,12 +53,20 @@ export function middleware(request: NextRequest) {
     if (isNgoPath && decoded.type !== 'ngo') {
       return NextResponse.redirect(new URL('/', request.url))
     }
-    
-    return NextResponse.next()
+
+    // Clone the request headers and add the token
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('Authorization', `Bearer ${token}`)
+
+    // Return the response with modified headers
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    })
   } catch (error) {
     // If token is invalid, redirect to login
-    const loginUrl = new URL('/login', request.url)
-    return NextResponse.redirect(loginUrl)
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 }
 
