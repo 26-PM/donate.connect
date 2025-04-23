@@ -259,11 +259,11 @@ export default function NGOsPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {sortedNgos.map((ngo, index) => (
-            <Card key={ngo.id || ngo._id} className="group overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-200">
-              <div className="relative h-48 w-full">
-                <Image 
-                  src={ngo.imageUrl || fallbackImage} 
-                  alt={ngo.name} 
+            <Card key={ngo.id || ngo._id} className="group overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-200 flex flex-col h-full">
+              <div className="relative h-48 w-full flex-shrink-0">
+                <Image
+                  src={ngo.imageUrl || fallbackImage}
+                  alt={ngo.name}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
                   onError={(e) => {
@@ -309,15 +309,16 @@ export default function NGOsPage() {
                   </div>
                 </div>
               </div>
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-2 min-h-[6rem]">
                 <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors">{ngo.name}</CardTitle>
-                <CardDescription className="flex items-center mt-1">
-                  <MapPin className="h-4 w-4 mr-1" />
-                  {ngo.location || "Location N/A"}
+                <CardDescription className="flex items-start mt-1">
+                  <MapPin className="h-4 w-4 mr-1 mt-0.5 flex-shrink-0" />
+                  <span className="line-clamp-2">{ngo.location || "Location N/A"}</span>
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground line-clamp-2">{ngo.description}</p>
+              <CardContent className="space-y-4 flex-1 min-h-[9rem]">
+                <p className="text-sm text-muted-foreground line-clamp-2">{ngo.description || "No description available."}</p>
+
                 <div>
                   <p className="text-sm font-medium mb-2 text-primary">Currently Needs:</p>
                   <div className="flex flex-wrap gap-2">
@@ -334,10 +335,10 @@ export default function NGOsPage() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between pt-2 border-t">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Hash className="h-4 w-4" />
-                  <span className="truncate max-w-[120px]">{ngo.registrationNumber || "Reg. pending"}</span>
+              <CardFooter className="flex justify-between items-center pt-4 mt-auto border-t">
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Hash className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate max-w-[100px]">{ngo.registrationNumber || "Reg. pending"}</span>
                 </div>
                 <Button className="bg-primary hover:bg-primary/90" size="sm" asChild>
                   <Link href={`/donor/ngos/${ngo._id}`}>

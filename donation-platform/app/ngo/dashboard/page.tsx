@@ -110,9 +110,14 @@ function NgoDashboard() {
   const [acceptedDonations, setAcceptedDonations] = useState<Donation[]>([])
   const [completedDonations, setCompletedDonations] = useState<Donation[]>([])
   const [rejectedDonations, setRejectedDonations] = useState<Donation[]>([])
+  const [loadingDonationId, setLoadingDonationId] = useState<string | null>(null)
+  const [actionType, setActionType] = useState<'accept' | 'reject' | 'complete' | null>(null)
 
   const handleAcceptDonation = async (donationId: string) => {
     try {
+      setLoadingDonationId(donationId)
+      setActionType('accept')
+      
       const token = localStorage.getItem('token');
       if (!token) {
         toast({
@@ -156,11 +161,17 @@ function NgoDashboard() {
         description: "Please try again later.",
         variant: "destructive",
       });
+    } finally {
+      setLoadingDonationId(null)
+      setActionType(null)
     }
   }
 
   const handleRejectDonation = async (donationId: string) => {
     try {
+      setLoadingDonationId(donationId)
+      setActionType('reject')
+      
       const token = localStorage.getItem('token');
       if (!token) {
         toast({
@@ -204,11 +215,17 @@ function NgoDashboard() {
         description: "Please try again later.",
         variant: "destructive",
       });
+    } finally {
+      setLoadingDonationId(null)
+      setActionType(null)
     }
   }
 
   const handleMarkAsCompleted = async (donationId: string) => {
     try {
+      setLoadingDonationId(donationId)
+      setActionType('complete')
+      
       const token = localStorage.getItem('token');
       if (!token) {
         toast({
@@ -260,6 +277,9 @@ function NgoDashboard() {
         description: "Please try again later.",
         variant: "destructive",
       });
+    } finally {
+      setLoadingDonationId(null)
+      setActionType(null)
     }
   }
 
@@ -468,8 +488,8 @@ function NgoDashboard() {
                     <CardContent className="space-y-4">
                       <div>
                         <p className="text-sm font-medium mb-1">Donor:</p>
-                        {/* <p className="text-sm">{donation.user.firstName} {donation.user.lastName}</p> */}
-                        {/* <p className="text-sm">{donation.user.email}</p> */}
+                        <p className="text-sm">{donation.user.firstName} {donation.user.lastName}</p>
+                        <p className="text-sm">{donation.user.email}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium mb-1">Items:</p>
@@ -500,11 +520,30 @@ function NgoDashboard() {
                       </div>
                     </CardContent>
                     <CardFooter className="flex gap-4">
-                      <Button className="flex-1" onClick={() => handleAcceptDonation(donation._id)}>
-                        Accept
+                      <Button 
+                        className="flex-1" 
+                        onClick={() => handleAcceptDonation(donation._id)}
+                        disabled={loadingDonationId === donation._id}
+                      >
+                        {loadingDonationId === donation._id && actionType === 'accept' ? (
+                          <>
+                            <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+                            Accepting...
+                          </>
+                        ) : 'Accept'}
                       </Button>
-                      <Button variant="outline" className="flex-1" onClick={() => handleRejectDonation(donation._id)}>
-                        Decline
+                      <Button 
+                        variant="outline" 
+                        className="flex-1" 
+                        onClick={() => handleRejectDonation(donation._id)}
+                        disabled={loadingDonationId === donation._id}
+                      >
+                        {loadingDonationId === donation._id && actionType === 'reject' ? (
+                          <>
+                            <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+                            Declining...
+                          </>
+                        ) : 'Decline'}
                       </Button>
                       <Button 
                         variant="secondary" 
@@ -512,6 +551,7 @@ function NgoDashboard() {
                           setSelectedDonation(donation);
                           setDetailsOpen(true);
                         }}
+                        disabled={loadingDonationId === donation._id}
                       >
                         <FileText className="h-4 w-4" />
                       </Button>
@@ -579,7 +619,18 @@ function NgoDashboard() {
                       </div>
                     </CardContent>
                     <CardFooter className="flex gap-4">
-                      <Button className="flex-1" onClick={() => handleMarkAsCompleted(donation._id)}>Mark as Collected</Button>
+                      <Button 
+                        className="flex-1" 
+                        onClick={() => handleMarkAsCompleted(donation._id)}
+                        disabled={loadingDonationId === donation._id}
+                      >
+                        {loadingDonationId === donation._id && actionType === 'complete' ? (
+                          <>
+                            <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+                            Processing...
+                          </>
+                        ) : 'Mark as Collected'}
+                      </Button>
                       <Button variant="outline" className="flex-1">
                         Contact Donor
                       </Button>
@@ -850,8 +901,14 @@ function NgoDashboard() {
                   handleAcceptDonation(selectedDonation._id);
                   setDetailsOpen(false);
                 }}
+                disabled={loadingDonationId === selectedDonation?._id}
               >
-                Accept Donation
+                {loadingDonationId === selectedDonation?._id && actionType === 'accept' ? (
+                  <>
+                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+                    Accepting...
+                  </>
+                ) : 'Accept Donation'}
               </Button>
               <Button 
                 variant="outline" 
@@ -860,8 +917,14 @@ function NgoDashboard() {
                   handleRejectDonation(selectedDonation._id);
                   setDetailsOpen(false);
                 }}
+                disabled={loadingDonationId === selectedDonation?._id}
               >
-                Decline Donation
+                {loadingDonationId === selectedDonation?._id && actionType === 'reject' ? (
+                  <>
+                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+                    Declining...
+                  </>
+                ) : 'Decline Donation'}
               </Button>
             </DialogFooter>
           </DialogContent>
