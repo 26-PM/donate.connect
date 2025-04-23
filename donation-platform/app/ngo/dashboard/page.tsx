@@ -41,6 +41,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
+import NGORoute from "@/components/auth/ngo-route"
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 import axios from "axios";
 import { jwtDecode, JwtPayload } from "jwt-decode"
@@ -89,7 +91,15 @@ interface Donation {
   notes?: string;
 }
 
-export default function NgoDashboard() {
+export default function NgoDashboardPage() {
+  return (
+    <NGORoute>
+      <NgoDashboard />
+    </NGORoute>
+  )
+}
+
+function NgoDashboard() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("available")
   const { toast } = useToast()
