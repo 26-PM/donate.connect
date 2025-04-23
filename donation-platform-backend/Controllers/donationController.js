@@ -101,6 +101,8 @@ const createDonation = async (req, res) => {
       });
     }
     
+    console.log(pickupOption === "scheduled" ? pickupDate : null)
+    console.log(pickupOption === "scheduled" ? pickupTime : null)
     const donation = await Donation.create({
       user: userId,
       ngo,
@@ -121,36 +123,65 @@ const createDonation = async (req, res) => {
       status: "Pending"
     });
 
-    console.log('Created donation:', donation);
+    // Send email to donor
+    // await sendEmail({
+    //   to: donor.email,
+    //   subject: "Donation Confirmation",
+    //   html: `
+    //     <p>Hi ${donor.firstName} ${donor.lastName},</p>
+    //     <p>Your donation request to ${ngoData.name} has been received. Here are the details:</p>
+    //     <ul>
+    //       ${items.map(item => `<li>${item.quantity} ${item.itemName}</li>`).join('')}
+    //     </ul>
+    //     <p>Pickup Details:</p>
+    //     <ul>
+    //       <li>Option: ${pickupOption === "scheduled" ? "Scheduled" : "As soon as possible"}</li>
+    //       ${pickupOption === "scheduled" ? `
+    //         <li>Date: ${new Date(pickupDate).toLocaleDateString()}</li>
+    //         <li>Time: ${pickupTime}</li>
+    //       ` : ''}
+    //       <li>Address: ${pickupAddress}</li>
+    //     </ul>
+    //     <p>The NGO will contact you soon to arrange the pickup.</p>
+    //     <p>Thank you for your generosity!</p>
+    //   `
+    // });
 
-    try {
-      // Send email to donor
-      await sendEmail({
-        to: donor.email,
-        subject: "Donation Confirmation",
-        html: `
-          <p>Hi ${donor.firstName} ${donor.lastName},</p>
-          <p>Your donation request to ${ngoData.name} has been received. Here are the details:</p>
-          <ul>
-            ${items.map(item => `<li>${item.quantity} ${item.itemName}</li>`).join('')}
-          </ul>
-          <p>Pickup Details:</p>
-          <ul>
-            <li>Option: ${pickupOption === "scheduled" ? "Scheduled" : "As soon as possible"}</li>
-            ${pickupOption === "scheduled" ? `
-              <li>Date: ${new Date(pickupDate).toLocaleDateString()}</li>
-              <li>Time: ${pickupTime}</li>
-            ` : ''}
-            <li>Address: ${pickupAddress}</li>
-          </ul>
-          <p>You will receive a notification when the NGO accepts your donation.</p>
-          <p>Thank you for your generosity!</p>
-        `
-      });
-    } catch (emailError) {
-      console.error('Error sending confirmation email:', emailError);
-      // Don't fail the donation if email fails
-    }
+    // // Send email to NGO
+    // await sendEmail({
+    //   to: ngoData.email,
+    //   subject: "New Donation Request",
+    //   html: `
+    //     <p>Hi ${ngoData.name},</p>
+    //     <p>You have received a new donation request from ${donor.name} (${donor.email}).</p>
+    //     <p>Donation Details:</p>
+    //     <ul>
+    //       ${items.map(item => `<li>${item.quantity} ${item.itemName}</li>`).join('')}
+    //     </ul>
+    //     <p>Pickup Details:</p>
+    //     <ul>
+    //       <li>Option: ${pickupOption === "scheduled" ? "Scheduled" : "As soon as possible"}</li>
+    //       ${pickupOption === "scheduled" ? `
+    //         <li>Date: ${new Date(pickupDate).toLocaleDateString()}</li>
+    //         <li>Time: ${pickupTime}</li>
+    //       ` : ''}
+    //       <li>Address: ${pickupAddress}</li>
+    //     </ul>
+    //     <p>Please contact the donor to arrange pickup.</p>
+    //   `
+    // });
+
+    // // Send SMS to donor
+    // await sendSMS({
+    //   to: donor.mobile,
+    //   body: `Hi ${donor.firstName} ${donor.lastName}, your donation request to ${ngoData.name} has been received. The NGO will contact you soon for pickup.`
+    // });
+
+    // // Send SMS to NGO
+    // await sendSMS({
+    //   to: ngoData.mobile,
+    //   body: `New donation request from ${donor.firstName} ${donor.lastName}. Please check your email for details.`
+    // });
 
     res.status(201).json({ 
       success: true,

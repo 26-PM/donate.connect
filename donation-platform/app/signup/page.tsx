@@ -11,16 +11,37 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/components/ui/use-toast"
+import { Checkbox } from "@/components/ui/checkbox"
 import axios from "axios"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+// Define the categories of items that NGOs can accept
+const itemCategories = [
+  { id: "Clothes", label: "Clothes" },
+  { id: "Books", label: "Books" },
+  { id: "Toys", label: "Toys" },
+  { id: "Medicines", label: "Medicines" },
+  { id: "Electronics", label: "Electronics" },
+  { id: "Others", label: "Others" },
+];
 
 export default function SignupPage() {
   const [userType, setUserType] = useState<"donor" | "ngo">("donor")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedItems, setSelectedItems] = useState<string[]>([])
   const { toast } = useToast()
   const router = useRouter()
+
+  // Handle item category selection
+  const handleItemSelection = (item: string) => {
+    setSelectedItems(prev => 
+      prev.includes(item) 
+        ? prev.filter(i => i !== item) 
+        : [...prev, item]
+    );
+  };
 
   const handleDonorSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     const form = e.currentTarget
@@ -30,7 +51,34 @@ export default function SignupPage() {
     const confirmPassword = formData.get("confirmPassword")
 
     if (password !== confirmPassword) {
-      toast({ title: "Passwords do not match", variant: "destructive" })
+      toast({
+        title: "Passwords do not match",
+        description: "Please ensure both passwords are identical",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Basic email validation
+    const email = formData.get("email") as string
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "Invalid email format",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Phone validation
+    const phone = formData.get("phone") as string
+    if (!phone.startsWith("+91") || phone.length < 13) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid Indian phone number starting with +91",
+        variant: "destructive"
+      })
       return
     }
 
@@ -49,13 +97,49 @@ export default function SignupPage() {
         description: "You can now log in with your credentials",
       })
       router.push("/login")
-    } catch (error) {
+    } catch (error: any) {
       console.log(error)
-      toast({
-        title: "Signup failed",
-        description: "An error occurred during donor signup. Please try again.",
-        variant: "destructive",
-      })
+      
+      // Handle different error scenarios
+      if (error.response) {
+        // The request was made and the server responded with a status code outside of 2xx
+        const { status, data } = error.response
+        
+        if (status === 400 && data.msg === "User already exists") {
+          toast({
+            title: "Account already exists",
+            description: "An account with this email already exists. Please login instead.",
+            variant: "destructive",
+          })
+        } else if (status === 422 || status === 400) {
+          // Validation errors
+          toast({
+            title: "Validation error",
+            description: data.msg || "Please check your information and try again.",
+            variant: "destructive",
+          })
+        } else {
+          toast({
+            title: "Signup failed",
+            description: data.msg || "An error occurred during donor signup. Please try again.",
+            variant: "destructive",
+          })
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        toast({
+          title: "Network error",
+          description: "Could not connect to the server. Please check your internet connection.",
+          variant: "destructive",
+        })
+      } else {
+        // Something else happened in setting up the request
+        toast({
+          title: "Signup failed",
+          description: "An unexpected error occurred. Please try again later.",
+          variant: "destructive",
+        })
+      }
     }
   }
 
@@ -67,38 +151,76 @@ export default function SignupPage() {
     const confirmPassword = formData.get("confirmPassword")
 
     if (password !== confirmPassword) {
-      toast({ title: "Passwords do not match", variant: "destructive" })
+      toast({
+        title: "Passwords do not match",
+        description: "Please ensure both passwords are identical",
+        variant: "destructive"
+      })
       return
     }
 
-    const fullAddress = [
-      formData.get("street"),
-      formData.get("landmark"),
-      formData.get("city"),
-      formData.get("state"),
-      formData.get("country"),
-      formData.get("pincode"),
-    ]
-      .filter(Boolean)
-      .join(", ")
+    // Check if at least one item category is selected
+    if (selectedItems.length === 0) {
+      toast({
+        title: "Items selection required",
+        description: "Please select at least one category of items your NGO accepts",
+        variant: "destructive"
+      })
+      return
+    }
 
-      const ngoData = {
-        name: formData.get("ngoName"),
-        registrationNumber: formData.get("registrationNumber"),
-        email: formData.get("ngoEmail"),
-        contactName: formData.get("contactName"),
-        contactPhone: formData.get("contactPhone"),
-        password,
-        mobile: formData.get("contactPhone"),
+    // Basic email validation
+    const email = formData.get("ngoEmail") as string
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "Invalid email format",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Phone validation
+    const phone = formData.get("contactPhone") as string
+    if (!phone.startsWith("+91") || phone.length < 13) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid Indian phone number starting with +91",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Registration number validation
+    // const regNumber = formData.get("registrationNumber") as string
+    // if (regNumber.length < 5) {
+    //   toast({
+    //     title: "Invalid registration number",
+    //     description: "Please enter a valid NGO registration number",
+    //     variant: "destructive"
+    //   })
+    //   return
+    // }
+
+    // Structure data to match the backend model
+    const ngoData = {
+      name: formData.get("ngoName"),
+      registrationNumber: formData.get("registrationNumber"),
+      email: formData.get("ngoEmail"),
+      password,
+      mobile: formData.get("contactPhone"),
+      // Structure address fields as a nested object to match the backend model
+      address: {
         streetNumber: formData.get("street"),
-        landmark: formData.get("landmark"),
+        landmark: formData.get("landmark") || "",
         city: formData.get("city"),
         state: formData.get("state"),
         country: formData.get("country"),
         pincode: formData.get("pincode"),
-        itemsAccepted: [], // or pull from the form if needed
-      }
-      
+      },
+      itemsAccepted: selectedItems, // Categories the NGO accepts
+    }
 
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/signup/ngo`, ngoData)
@@ -107,13 +229,50 @@ export default function SignupPage() {
         description: "You can now log in with your credentials",
       })
       router.push("/login")
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
-      toast({
-        title: "Signup failed",
-        description: "An error occurred during NGO signup. Please try again.",
-        variant: "destructive",
-      })
+      
+      // Handle different error scenarios
+      if (error.response) {
+        // The request was made and the server responded with a status code outside of 2xx
+        const { status, data } = error.response
+        
+        if (status === 400 && data.msg === "NGO already exists") {
+          toast({
+            title: "Account already exists",
+            description: "An NGO with this email or registration number already exists. Please login instead.",
+            variant: "destructive",
+          })
+        } else if (status === 422 || status === 400) {
+          // Validation errors
+          const errorMessage = data.msg || "Please check your information and try again."
+          toast({
+            title: "Validation error",
+            description: errorMessage,
+            variant: "destructive",
+          })
+        } else {
+          toast({
+            title: "Signup failed",
+            description: data.msg || "An error occurred during NGO signup. Please try again.",
+            variant: "destructive",
+          })
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        toast({
+          title: "Network error",
+          description: "Could not connect to the server. Please check your internet connection.",
+          variant: "destructive",
+        })
+      } else {
+        // Something else happened in setting up the request
+        toast({
+          title: "Signup failed",
+          description: "An unexpected error occurred. Please try again later.",
+          variant: "destructive",
+        })
+      }
     }
   }
 
@@ -206,7 +365,7 @@ export default function SignupPage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="phone">Phone Number</Label>
-                        <Input id="phone" name="phone" type="tel" placeholder="+91 0000000000" required />
+                        <Input id="phone" name="phone" type="tel" placeholder="+91 9876543210" required />
                       </div>
                     </>
                   ) : (
@@ -259,6 +418,26 @@ export default function SignupPage() {
                         <div className="space-y-2">
                           <Label htmlFor="pincode">Pincode</Label>
                           <Input id="pincode" name="pincode" placeholder="123456" required />
+                        </div>
+                      </div>
+
+                      {/* Item Categories Selection */}
+                      <div className="space-y-3">
+                        <Label>Items Accepted</Label>
+                        <p className="text-sm text-muted-foreground">Select the categories of items your NGO accepts for donation</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {itemCategories.map((item) => (
+                            <div key={item.id} className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={item.id} 
+                                checked={selectedItems.includes(item.id)} 
+                                onCheckedChange={() => handleItemSelection(item.id)} 
+                              />
+                              <Label htmlFor={item.id} className="text-sm font-normal cursor-pointer">
+                                {item.label}
+                              </Label>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </>

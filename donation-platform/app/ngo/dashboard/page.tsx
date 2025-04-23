@@ -311,14 +311,14 @@ export default function NgoDashboard() {
   return (
     <div className="min-h-screen flex">
       {/* Sidebar */}
-      <div className="hidden md:flex w-64 flex-col border-r bg-muted/40">
+      <div className="hidden md:flex w-64 flex-col border-r bg-muted/40 h-screen sticky top-0">
         <div className="flex h-16 items-center border-b px-6">
           <Link href="/" className="flex items-center gap-2 font-bold">
             <Gift className="h-6 w-6 text-primary" />
             <span>DonateConnect</span>
           </Link>
         </div>
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           <Link href="/">
             <Button variant="ghost" className="w-full justify-start">
               <Home className="mr-2 h-4 w-4" />
@@ -350,7 +350,7 @@ export default function NgoDashboard() {
             </Button>
           </Link> */}
         </nav>
-        <div className="border-t p-4">
+        <div className="border-t p-4 sticky bottom-0 bg-muted/40">
           <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             Logout
@@ -458,8 +458,8 @@ export default function NgoDashboard() {
                     <CardContent className="space-y-4">
                       <div>
                         <p className="text-sm font-medium mb-1">Donor:</p>
-                        <p className="text-sm">{donation.user.firstName} {donation.user.lastName}</p>
-                        <p className="text-sm">{donation.user.email}</p>
+                        {/* <p className="text-sm">{donation.user.firstName} {donation.user.lastName}</p> */}
+                        {/* <p className="text-sm">{donation.user.email}</p> */}
                       </div>
                       <div>
                         <p className="text-sm font-medium mb-1">Items:</p>
@@ -723,7 +723,7 @@ export default function NgoDashboard() {
                     <User className="h-4 w-4 text-muted-foreground mt-1" />
                     <div>
                       <p className="font-medium">Name</p>
-                      <p>{selectedDonation.user.firstName} {selectedDonation.user.lastName}</p>
+                      {/* <p>{selectedDonation.user.firstName} {selectedDonation.user.lastName}</p> */}
                     </div>
                   </div>
                   

@@ -4,13 +4,22 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Gift, Clock, CheckCircle, Star, Sun, Moon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { jwtDecode } from "jwt-decode";
 
 import { Button } from "@/components/ui/button";
 import TestimonialForm from '@/components/ui/testimonial-form';
 
+interface DecodedToken {
+  id: string;
+  type?: string;
+  exp: number;
+}
+
 export default function LandingPage() {
   type Testimonial = { id: number; text: string; author: string };
 
+  const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showRealTestimonials, setShowRealTestimonials] = useState(false);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
@@ -25,6 +34,42 @@ export default function LandingPage() {
       }
     }
   }, []);
+
+  // Check for authentication token on page load
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem('token');
+        
+        if (token) {
+          try {
+            // Decode the token to check if it's valid and not expired
+            const decodedToken = jwtDecode<DecodedToken>(token);
+            const currentTime = Date.now() / 1000;
+            
+            if (decodedToken.exp && decodedToken.exp > currentTime) {
+              // Token is valid and not expired
+              // Redirect based on user role if specified, otherwise default to user dashboard
+              // console.log("Decoded token:", decodedToken);
+              if (decodedToken.type === 'ngo') {
+                router.push('/ngo/dashboard');
+              } else {
+                router.push('/donor/dashboard');
+              }
+            } else {
+              // Token is expired, remove it
+              localStorage.removeItem('token');
+            }
+          } catch (error) {
+            console.error("Error decoding token:", error);
+            localStorage.removeItem('token');
+          }
+        }
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   useEffect(() => {
     if (showRealTestimonials) {

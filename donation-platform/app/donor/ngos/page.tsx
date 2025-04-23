@@ -113,8 +113,8 @@ export default function NGOsPage() {
             lat: 40.7128 + (Math.random() * 2 - 1),
             lng: -74.0060 + (Math.random() * 2 - 1)
           },
-          location: ngo.location || "Unknown location",
-          needs: ngo.needs || [],
+          location: `${ngo.address.streetNumber},${ngo.address.landmark},${ngo.address.city},${ngo.address.state},${ngo.address.country},${ngo.address.pincode} ` || "Unknown location",
+          needs: ngo.itemsAccepted || [],
         }))
         
         setNgos(ngosWithImages)
@@ -159,7 +159,6 @@ export default function NGOsPage() {
     }
     return 0;
   });
-
   return (
     <div className="space-y-8 p-6 max-w-7xl mx-auto">
       {/* Hero section */}
@@ -259,7 +258,7 @@ export default function NGOsPage() {
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {sortedNgos.map((ngo, index) => (
+            {sortedNgos.map((ngo, index) => (
             <Card key={ngo.id || ngo._id} className="group overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-200">
               <div className="relative h-48 w-full">
                 <Image 

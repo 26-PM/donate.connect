@@ -36,15 +36,11 @@ const signupNGO = async (req, res) => {
       email,
       password,
       mobile,
-      streetNumber,
-      landmark,
-      city,
-      state,
-      country,
-      pincode,
+      address,
       itemsAccepted,
     } = req.body;
 
+    console.log(req.body);
     const exists = await NGO.findOne({ email });
     if (exists) return res.status(400).json({ msg: "NGO already exists" });
 
@@ -56,12 +52,13 @@ const signupNGO = async (req, res) => {
       email,
       password: hashed,
       mobile,
-      address: { streetNumber, landmark, city, state, country, pincode },
+      address,
       itemsAccepted,
     });
 
     res.status(201).json({ msg: "NGO signup successful" });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 };
