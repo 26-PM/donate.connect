@@ -128,6 +128,38 @@ function NgoDashboard() {
         return;
       }
 
+      // Find the donation in availableDonations to check its pickup date
+      const donation = availableDonations.find(d => d._id === donationId || d.id === donationId);
+      
+      if (!donation) {
+        toast({
+          title: "Error",
+          description: "Donation not found.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate the pickup date
+      if (donation.pickupOption === 'scheduled' && donation.pickupDate) {
+        const pickupDate = new Date(donation.pickupDate);
+        const today = new Date();
+        
+        // Set time to beginning of day for comparison
+        today.setHours(0, 0, 0, 0);
+        
+        if (pickupDate < today) {
+          toast({
+            title: "Cannot Accept",
+            description: "The scheduled pickup date has already passed. Please contact the donor to reschedule.",
+            variant: "destructive",
+          });
+          setLoadingDonationId(null);
+          setActionType(null);
+          return;
+        }
+      }
+
       const response = await axios.put(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/${donationId}/status`,
         { status: 'Accepted' },
@@ -898,6 +930,24 @@ function NgoDashboard() {
               <Button 
                 className="flex-1" 
                 onClick={() => {
+                  // Validate if pickup date has passed
+                  if (selectedDonation.pickupOption === 'scheduled' && selectedDonation.pickupDate) {
+                    const pickupDate = new Date(selectedDonation.pickupDate);
+                    const today = new Date();
+                    
+                    // Set time to beginning of day for comparison
+                    today.setHours(0, 0, 0, 0);
+                    
+                    if (pickupDate < today) {
+                      toast({
+                        title: "Cannot Accept",
+                        description: "The scheduled pickup date has already passed. Please contact the donor to reschedule.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                  }
+                  
                   handleAcceptDonation(selectedDonation._id);
                   setDetailsOpen(false);
                 }}
