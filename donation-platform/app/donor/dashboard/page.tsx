@@ -11,6 +11,8 @@ import {
   Home,
   LogOut,
   User,
+  X,
+  AlertCircle,
 } from "lucide-react"
 import axios from "axios"
 import { useToast } from "@/hooks/use-toast"
@@ -50,6 +52,7 @@ interface Donation {
   pickupTime?: string;
   createdAt: string;
   completedDate?: string;
+  rejectionReason?: string;
 }
 
 interface DecodedToken {
@@ -73,7 +76,7 @@ function DonorDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
   const router = useRouter()
-  const [userName, setUserName] = useState("User")
+  const [userName, setUserName] = useState<string>("User")
 
   useEffect(() => {
     const fetchDonations = async () => {
@@ -83,16 +86,46 @@ function DonorDashboard() {
           router.push('/login')
           return
         }
-
-        const decodedToken = jwtDecode<DecodedToken>(token)
+        
+        const decodedToken = jwtDecode<DecodedToken & { name?: string, lastName?: string }>(token)
         const userId = decodedToken.id
+        
+        // Try to get name from token first
+        if (decodedToken.name) {
+          const fullName = decodedToken.lastName 
+            ? `${decodedToken.name} ${decodedToken.lastName}` 
+            : decodedToken.name;
+          setUserName(fullName);
+        } else {
+          // Fallback to API request for name
+          try {
+            const response = await axios.get(
+              `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/${decodedToken.id}`, {
+                headers: {
+                  Authorization: `Bearer ${token}`
+                }
+              }
+            )
+            
+            if (response.data && response.data.data) {
+              const user = response.data.data
+              setUserName(user.firstName ? `${user.firstName} ${user.lastName || ''}` : user.email || 'User')
+            }
+          } catch (userError) {
+            console.error('Error fetching user details:', userError);
+          }
+        }
 
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/user/${userId}`
+        const donationsResponse = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/user/${decodedToken.id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
         )
 
-        console.log('Donations:', response.data.data)
-        setDonations(response.data.data)
+        console.log('Donations:', donationsResponse.data.data)
+        setDonations(donationsResponse.data.data)
       } catch (error) {
         console.error('Error fetching donations:', error)
         toast({
@@ -108,27 +141,34 @@ function DonorDashboard() {
     fetchDonations()
   }, [toast, router])
 
-  useEffect(() => {
-    // Get user info from token
-    const token = localStorage.getItem("token")
-    if (token) {
-      try {
-        // In a real app, you'd fetch user details from an API
-        const decodedToken = jwtDecode<DecodedToken>(token)
-        // Set username - could be improved by fetching from API
-        setUserName("Donor")
-      } catch (error) {
-        console.error("Error decoding token:", error)
-      }
-    }
-  }, [])
-
   const pendingDonations = donations.filter(d => d.status === "Pending" || d.status === "Accepted")
   const completedDonations = donations.filter(d => d.status === "Completed")
+  const rejectedDonations = donations.filter(d => d.status === "Rejected")
 
-  const handleLogout = () => {
-    localStorage.removeItem("token")
-    router.push("/")
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        // Call the logout API endpoint
+        await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/logout`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          withCredentials: true
+        });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Clear token from localStorage
+      localStorage.removeItem("token");
+      
+      // Clear token from cookies
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      
+      // Redirect to home
+      router.push("/");
+    }
   }
 
   if (isLoading) {
@@ -164,7 +204,7 @@ function DonorDashboard() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Total Donations</CardTitle>
@@ -192,12 +232,22 @@ function DonorDashboard() {
               <p className="text-xs text-muted-foreground">Successfully delivered donations</p>
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Rejected Donations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{rejectedDonations.length}</div>
+              <p className="text-xs text-muted-foreground">Donations declined by NGOs</p>
+            </CardContent>
+          </Card>
         </div>
 
         <Tabs defaultValue="pending" className="space-y-4" onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="pending">Pending Donations</TabsTrigger>
             <TabsTrigger value="completed">Completed Donations</TabsTrigger>
+            <TabsTrigger value="rejected">Rejected Donations</TabsTrigger>
           </TabsList>
 
           <TabsContent value="pending" className="space-y-4">
@@ -323,6 +373,70 @@ function DonorDashboard() {
                     </Button>
                     <Button variant="secondary" className="flex-1">
                       Leave Feedback
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="rejected" className="space-y-4">
+            {rejectedDonations.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-10">
+                  <X className="h-10 w-10 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">You don't have any rejected donations</p>
+                </CardContent>
+              </Card>
+            ) : (
+              rejectedDonations.map((donation) => (
+                <Card key={donation._id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>DON-{donation._id.slice(-4)}</CardTitle>
+                      <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Rejected</span>
+                    </div>
+                    <CardDescription>
+                      Rejected on {new Date(donation.createdAt).toLocaleDateString()}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium mb-1">Items:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {donation.items.map((item, i) => (
+                          <span key={i} className="bg-muted text-xs px-2 py-1 rounded-full">
+                            {item.quantity} {item.itemName}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium mb-1">NGO:</p>
+                      <p className="text-sm">{donation.ngo.name}</p>
+                    </div>
+                    <div className="mt-2 p-3 bg-red-50 rounded-md border border-red-200">
+                      <p className="text-sm text-red-800 font-medium">This donation was declined by the NGO.</p>
+                      {donation.rejectionReason ? (
+                        <div className="mt-2">
+                          <p className="text-sm text-red-800 font-medium">Reason:</p>
+                          <p className="text-sm text-red-700 mt-1">{donation.rejectionReason}</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-red-700 mt-1">You can try donating to another organization.</p>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex gap-4">
+                    <Button variant="outline" className="flex-1" asChild>
+                      <Link href={`/donor/donations/${donation._id}`}>
+                        View Details
+                      </Link>
+                    </Button>
+                    <Button variant="secondary" className="flex-1" asChild>
+                      <Link href="/donor/ngos">
+                        Try Another NGO
+                      </Link>
                     </Button>
                   </CardFooter>
                 </Card>

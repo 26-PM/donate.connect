@@ -2,10 +2,11 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Gift, Mail } from "lucide-react"
+import { jwtDecode } from "jwt-decode"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,14 +15,78 @@ import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
 import axios from "axios"
 
+interface DecodedToken {
+  id: string
+  type: 'donor' | 'ngo' | 'user'
+  exp: number
+}
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true) // Start with loading
   const { toast } = useToast()
   const router = useRouter()
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        // Check for token in localStorage
+        const token = localStorage.getItem('token');
+        
+        if (token) {
+          try {
+            // Validate token by decoding
+            const decoded = jwtDecode<DecodedToken>(token);
+            const currentTime = Math.floor(Date.now() / 1000);
+            
+            // Check if token is expired
+            if (decoded.exp > currentTime) {
+              // Token not expired, verify with backend
+              try {
+                const response = await axios.get(`${API_BASE_URL}/api/auth/verify`, {
+                  headers: { 
+                    'Authorization': `Bearer ${token}` 
+                  },
+                  withCredentials: true
+                });
+                
+                if (response.data.success) {
+                  // User is authenticated, redirect based on user type
+                  if (decoded.type === "user" || decoded.type === "donor") {
+                    router.push("/donor/dashboard");
+                    return;
+                  } else if (decoded.type === "ngo") {
+                    router.push("/ngo/dashboard");
+                    return;
+                  }
+                }
+              } catch (verifyError) {
+                console.error("Token verification failed:", verifyError);
+                // Clear invalid token
+                localStorage.removeItem('token');
+              }
+            } else {
+              // Token expired, remove from storage
+              localStorage.removeItem('token');
+            }
+          } catch (decodeError) {
+            console.error("Token decode error:", decodeError);
+            // Invalid token format, remove it
+            localStorage.removeItem('token');
+          }
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkAuth();
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -90,6 +155,18 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Show loading spinner while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+          <p className="text-muted-foreground">Checking authentication...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -302,9 +302,9 @@ const getNgoDonations = async (req, res) => {
 const updateDonationStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, completedDate } = req.body;
+    const { status, completedDate, rejectionReason } = req.body;
     
-    console.log('Updating donation status:', { id, status, completedDate });
+    console.log('Updating donation status:', { id, status, completedDate, rejectionReason });
 
     // Validate if id is a valid MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -328,6 +328,11 @@ const updateDonationStatus = async (req, res) => {
     // Add completedDate if status is Completed and completedDate is provided
     if (status === 'Completed' && completedDate) {
       updateData.completedDate = completedDate;
+    }
+
+    // Add rejectionReason if status is Rejected and reason is provided
+    if (status === 'Rejected' && rejectionReason) {
+      updateData.rejectionReason = rejectionReason;
     }
 
     const donation = await Donation.findByIdAndUpdate(
@@ -382,7 +387,7 @@ const updateDonationStatus = async (req, res) => {
             <ul>
               ${donation.items.map(item => `<li>${item.quantity} ${item.itemName}</li>`).join('')}
             </ul>
-            <p>This could be due to various reasons such as current inventory levels or logistical constraints.</p>
+            ${donation.rejectionReason ? `<p><strong>Reason:</strong> ${donation.rejectionReason}</p>` : ''}
             <p>Thank you for your willingness to donate. Please consider donating to another NGO or trying again later.</p>
           `;
           break;

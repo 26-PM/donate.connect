@@ -72,6 +72,10 @@ const donationSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    rejectionReason: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true }
 );

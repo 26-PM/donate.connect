@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Calendar, Clock, MapPin, Package, User, CheckCircle, Truck, Box } from "lucide-react"
+import { ArrowLeft, Calendar, Clock, MapPin, Package, User, CheckCircle, Truck, Box, AlertCircle } from "lucide-react"
 import axios from "axios"
 import { useToast } from "@/hooks/use-toast"
 import { jwtDecode } from "jwt-decode"
@@ -35,6 +35,7 @@ interface Donation {
   pickupTime: string | null
   status: string
   createdAt: string
+  rejectionReason?: string
 }
 
 interface DecodedToken {
@@ -119,15 +120,15 @@ export default function DonationDetailsPage() {
         return {
           color: "bg-yellow-500",
           progress: 25,
-          icon: Package,
+          icon: Clock,
           description: "Waiting for NGO approval"
         }
       case "Accepted":
         return {
           color: "bg-blue-500",
-          progress: 50,
+          progress: 75,
           icon: Truck,
-          description: "Pickup scheduled"
+          description: "Scheduled for pickup"
         }
       case "Completed":
         return {
@@ -135,6 +136,13 @@ export default function DonationDetailsPage() {
           progress: 100,
           icon: CheckCircle,
           description: "Successfully delivered"
+        }
+      case "Rejected":
+        return {
+          color: "bg-red-500",
+          progress: 0,
+          icon: AlertCircle,
+          description: "Donation rejected"
         }
       default:
         return {
@@ -208,6 +216,7 @@ export default function DonationDetailsPage() {
               donation.status === "Pending" ? "bg-yellow-100 text-yellow-800" :
               donation.status === "Accepted" ? "bg-blue-100 text-blue-800" :
               donation.status === "Completed" ? "bg-green-100 text-green-800" :
+              donation.status === "Rejected" ? "bg-red-100 text-red-800" :
               "bg-gray-100 text-gray-800"
             }`}>
               {donation.status}
@@ -233,6 +242,23 @@ export default function DonationDetailsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Rejection Reason - Show only if donation is rejected */}
+          {donation.status === "Rejected" && donation.rejectionReason && (
+            <Card className="border-red-200">
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+                    <div>
+                      <h3 className="font-medium text-red-700">Rejection Reason</h3>
+                      <p className="text-gray-700 mt-2">{donation.rejectionReason}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* NGO Information */}

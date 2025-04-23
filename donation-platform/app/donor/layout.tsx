@@ -42,7 +42,7 @@ function DonorLayoutContent({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          <Link href="/">
+          <Link href="/donor/home">
             <Button variant="ghost" className="w-full justify-start">
               <Home className="mr-2 h-4 w-4" />
               Home

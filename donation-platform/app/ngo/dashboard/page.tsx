@@ -25,6 +25,10 @@ import {
   Mail,
   FileText,
   Camera,
+  ClipboardList,
+  Eye,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -42,6 +46,14 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import NGORoute from "@/components/auth/ngo-route"
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetDescription, 
+  SheetHeader, 
+  SheetTitle
+} from "@/components/ui/sheet"
+import { Textarea } from "@/components/ui/textarea"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 import axios from "axios";
@@ -89,6 +101,7 @@ interface Donation {
   beneficiaries?: string;
   pickupOption: string;
   notes?: string;
+  rejectionReason?: string;
 }
 
 export default function NgoDashboardPage() {
@@ -105,13 +118,18 @@ function NgoDashboard() {
   const { toast } = useToast()
   const [selectedDonation, setSelectedDonation] = useState<Donation | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
+  const [ngoName, setNgoName] = useState<string>("NGO")
 
   const [availableDonations, setAvailableDonations] = useState<Donation[]>([])
   const [acceptedDonations, setAcceptedDonations] = useState<Donation[]>([])
   const [completedDonations, setCompletedDonations] = useState<Donation[]>([])
   const [rejectedDonations, setRejectedDonations] = useState<Donation[]>([])
   const [loadingDonationId, setLoadingDonationId] = useState<string | null>(null)
-  const [actionType, setActionType] = useState<'accept' | 'reject' | 'complete' | null>(null)
+  const [actionType, setActionType] = useState<string | null>(null)
+  const [selectedDonationId, setSelectedDonationId] = useState<string | null>(null)
+  const [showRejectionModal, setShowRejectionModal] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState("")
+  const [isRejectionReasonValid, setIsRejectionReasonValid] = useState(false)
 
   const handleAcceptDonation = async (donationId: string) => {
     try {
@@ -163,7 +181,12 @@ function NgoDashboard() {
       const response = await axios.put(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/${donationId}/status`,
         { status: 'Accepted' },
-        { withCredentials: true }
+        { 
+          withCredentials: true,
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
       );
 
       if (response.status === 200) {
@@ -199,7 +222,20 @@ function NgoDashboard() {
     }
   }
 
-  const handleRejectDonation = async (donationId: string) => {
+  const openRejectionModal = (donationId: string) => {
+    setSelectedDonationId(donationId);
+    setRejectionReason("");
+    setIsRejectionReasonValid(false);
+    setShowRejectionModal(true);
+  };
+
+  const closeRejectionModal = () => {
+    setSelectedDonationId(null);
+    setRejectionReason("");
+    setShowRejectionModal(false);
+  };
+
+  const handleRejectDonation = async (donationId: string, reason: string = "") => {
     try {
       setLoadingDonationId(donationId)
       setActionType('reject')
@@ -216,8 +252,16 @@ function NgoDashboard() {
 
       const response = await axios.put(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/${donationId}/status`,
-        { status: 'Rejected' },
-        { withCredentials: true }
+        { 
+          status: 'Rejected',
+          rejectionReason: reason 
+        },
+        { 
+          withCredentials: true,
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
       );
 
       if (response.status === 200) {
@@ -225,7 +269,11 @@ function NgoDashboard() {
         const donationIndex = availableDonations.findIndex(d => d._id === donationId || d.id === donationId);
         if (donationIndex !== -1) {
           // Create updated donation with status changed to 'Rejected'
-          const updatedDonation = { ...availableDonations[donationIndex], status: 'Rejected' };
+          const updatedDonation = { 
+            ...availableDonations[donationIndex], 
+            status: 'Rejected',
+            rejectionReason: reason
+          };
           
           // Remove from available and add to rejected
           const newAvailable = [...availableDonations];
@@ -250,6 +298,7 @@ function NgoDashboard() {
     } finally {
       setLoadingDonationId(null)
       setActionType(null)
+      closeRejectionModal();
     }
   }
 
@@ -274,7 +323,12 @@ function NgoDashboard() {
           status: 'Completed',
           completedDate: new Date().toISOString() 
         },
-        { withCredentials: true }
+        { 
+          withCredentials: true,
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
       );
 
       if (response.status === 200) {
@@ -320,9 +374,25 @@ function NgoDashboard() {
       try {
         const token = localStorage.getItem('token')
         if (token) {
+          // Try to extract NGO name from token
+          try {
+            const decodedToken = jwtDecode<DecodedToken & { name?: string }>(token)
+            if (decodedToken.name) {
+              setNgoName(decodedToken.name)
+            } else {
+              // If name not in token, use default
+              setNgoName("NGO Dashboard")
+            }
+          } catch (tokenError) {
+            console.error("Error decoding token:", tokenError)
+          }
+
           const decodedToken = jwtDecode<DecodedToken>(token)
           const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/ngo/${decodedToken.id}`, {
             withCredentials: true,
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
           })
           console.log(response.data)
   
@@ -437,7 +507,7 @@ function NgoDashboard() {
             <Button variant="ghost" size="sm" asChild>
               <Link href="/ngo/profile">
                 <User className="mr-2 h-4 w-4" />
-                Hope Foundation
+                {ngoName}
               </Link>
             </Button>
           </div>
@@ -567,7 +637,7 @@ function NgoDashboard() {
                       <Button 
                         variant="outline" 
                         className="flex-1" 
-                        onClick={() => handleRejectDonation(donation._id)}
+                        onClick={() => openRejectionModal(donation._id)}
                         disabled={loadingDonationId === donation._id}
                       >
                         {loadingDonationId === donation._id && actionType === 'reject' ? (
@@ -778,6 +848,15 @@ function NgoDashboard() {
                           <p className="text-xs text-muted-foreground">{donation.distance} away</p>
                         </div>
                       </div>
+                      {donation.rejectionReason && (
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium">Reason for Rejection:</p>
+                            <p className="text-sm">{donation.rejectionReason}</p>
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                     <CardFooter className="flex gap-4">
                       <Button variant="outline" className="flex-1">
@@ -878,6 +957,16 @@ function NgoDashboard() {
                       </div>
                     </div>
                   )}
+
+                  {selectedDonation.status === "Rejected" && selectedDonation.rejectionReason && (
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-500 mt-1" />
+                      <div>
+                        <p className="font-medium text-red-700">Rejection Reason</p>
+                        <p>{selectedDonation.rejectionReason}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -927,58 +1016,128 @@ function NgoDashboard() {
             </div>
 
             <DialogFooter className="flex gap-2">
-              <Button 
-                className="flex-1" 
-                onClick={() => {
-                  // Validate if pickup date has passed
-                  if (selectedDonation.pickupOption === 'scheduled' && selectedDonation.pickupDate) {
-                    const pickupDate = new Date(selectedDonation.pickupDate);
-                    const today = new Date();
-                    
-                    // Set time to beginning of day for comparison
-                    today.setHours(0, 0, 0, 0);
-                    
-                    if (pickupDate < today) {
-                      toast({
-                        title: "Cannot Accept",
-                        description: "The scheduled pickup date has already passed. Please contact the donor to reschedule.",
-                        variant: "destructive",
-                      });
-                      return;
-                    }
-                  }
-                  
-                  handleAcceptDonation(selectedDonation._id);
-                  setDetailsOpen(false);
-                }}
-                disabled={loadingDonationId === selectedDonation?._id}
-              >
-                {loadingDonationId === selectedDonation?._id && actionType === 'accept' ? (
-                  <>
-                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
-                    Accepting...
-                  </>
-                ) : 'Accept Donation'}
-              </Button>
-              <Button 
-                variant="outline" 
-                className="flex-1"
-                onClick={() => {
-                  handleRejectDonation(selectedDonation._id);
-                  setDetailsOpen(false);
-                }}
-                disabled={loadingDonationId === selectedDonation?._id}
-              >
-                {loadingDonationId === selectedDonation?._id && actionType === 'reject' ? (
-                  <>
-                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
-                    Declining...
-                  </>
-                ) : 'Decline Donation'}
+              {selectedDonation.status === "Pending" && (
+                <>
+                  <Button 
+                    className="flex-1" 
+                    onClick={() => {
+                      // Validate if pickup date has passed
+                      if (selectedDonation.pickupOption === 'scheduled' && selectedDonation.pickupDate) {
+                        const pickupDate = new Date(selectedDonation.pickupDate);
+                        const today = new Date();
+                        
+                        // Set time to beginning of day for comparison
+                        today.setHours(0, 0, 0, 0);
+                        
+                        if (pickupDate < today) {
+                          toast({
+                            title: "Cannot Accept",
+                            description: "The scheduled pickup date has already passed. Please contact the donor to reschedule.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                      }
+                      
+                      handleAcceptDonation(selectedDonation._id);
+                      setDetailsOpen(false);
+                    }}
+                    disabled={loadingDonationId === selectedDonation?._id}
+                  >
+                    {loadingDonationId === selectedDonation?._id && actionType === 'accept' ? (
+                      <>
+                        <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+                        Accepting...
+                      </>
+                    ) : 'Accept Donation'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => {
+                      setDetailsOpen(false); // Close the details dialog first
+                      openRejectionModal(selectedDonation._id); // Open the rejection reason modal
+                    }}
+                    disabled={loadingDonationId === selectedDonation?._id}
+                  >
+                    {loadingDonationId === selectedDonation?._id && actionType === 'reject' ? (
+                      <>
+                        <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+                        Declining...
+                      </>
+                    ) : 'Decline Donation'}
+                  </Button>
+                </>
+              )}
+              
+              {selectedDonation.status === "Accepted" && (
+                <Button 
+                  className="flex-1"
+                  onClick={() => {
+                    handleMarkAsCompleted(selectedDonation._id);
+                    setDetailsOpen(false);
+                  }}
+                  disabled={loadingDonationId === selectedDonation?._id}
+                >
+                  {loadingDonationId === selectedDonation?._id && actionType === 'complete' ? (
+                    <>
+                      <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+                      Completing...
+                    </>
+                  ) : 'Mark as Completed'}
+                </Button>
+              )}
+              
+              <Button variant="outline" onClick={() => setDetailsOpen(false)}>
+                Close
               </Button>
             </DialogFooter>
           </DialogContent>
         )}
+      </Dialog>
+
+      {/* Rejection Reason Modal */}
+      <Dialog open={showRejectionModal} onOpenChange={(open) => !open && closeRejectionModal()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rejection Reason</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this donation. This will be shared with the donor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Textarea
+              placeholder="Enter rejection reason..."
+              className="min-h-[100px]"
+              value={rejectionReason}
+              onChange={(e) => {
+                setRejectionReason(e.target.value);
+                setIsRejectionReasonValid(e.target.value.trim().length >= 10);
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              {rejectionReason.trim().length < 10 
+                ? `Please provide more details (at least ${10 - rejectionReason.trim().length} more characters)` 
+                : "✓ Detailed reason provided"}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeRejectionModal}>Cancel</Button>
+            <Button 
+              variant="destructive"
+              disabled={!isRejectionReasonValid || loadingDonationId === selectedDonationId}
+              onClick={() => selectedDonationId && handleRejectDonation(selectedDonationId, rejectionReason)}
+            >
+              {loadingDonationId === selectedDonationId ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Rejecting...
+                </>
+              ) : (
+                "Reject Donation"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
     </div>
