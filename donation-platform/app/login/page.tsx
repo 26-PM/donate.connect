@@ -96,42 +96,55 @@ export default function LoginPage() {
     const email = formData.get("email") as string
     const password = formData.get("password") as string
   
-    const loginData = { email, password }
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, loginData, {
-        withCredentials: true,
-      })
+      const response = await axios.post(
+        `${API_BASE_URL}/api/auth/login`,
+        { email, password },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true
+        }
+      )
 
-      // Store token in localStorage
       if (response.data.token) {
+        // Store token in localStorage
         localStorage.setItem('token', response.data.token)
-      }
-      
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
-      })  
-      
+        
+        // Configure axios defaults
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`
+        axios.defaults.withCredentials = true
+        
+        toast({
+          title: "Login successful",
+          description: "Welcome back!"
+        })
 
-      // Redirect based on role
-      if (response.data.type === "user") {
-        router.push("/donor/dashboard")
-      } else if (response.data.type === "ngo") {
-        router.push("/ngo/dashboard")
+        // Force a small delay to ensure token is properly stored
+        await new Promise(resolve => setTimeout(resolve, 100))
+
+        // Use router.replace instead of push for smoother navigation
+        if (response.data.type === "user") {
+          await router.replace("/donor/dashboard")
+        } else if (response.data.type === "ngo") {
+          await router.replace("/ngo/dashboard")
+        } else {
+          await router.replace("/")
+        }
       } else {
-        router.push("/")
+        throw new Error("No token received")
       }
     } catch (error: any) {
       console.error('Login Error:', error)
       toast({
         title: "Login failed",
-        description:
-          error?.response?.data?.message || "Invalid credentials. Please try again.",
+        description: error?.response?.data?.msg || "Invalid credentials. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setIsLoading(false)
     }
-  
-    setIsLoading(false)
   }
 
   const handleGoogleLogin = async () => {

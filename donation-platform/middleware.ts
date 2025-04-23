@@ -4,17 +4,21 @@ import { jwtDecode } from 'jwt-decode'
 
 interface DecodedToken {
   id: string
-  type: 'donor' | 'ngo' | 'user'
+  type: string
   exp: number
 }
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('token')?.value || request.headers.get('authorization')?.split(' ')[1]
+  // Get token from either cookie or Authorization header
+  const token = request.headers.get('Authorization')?.split(' ')[1] || 
+                request.cookies.get('token')?.value
+                
   const path = request.nextUrl.pathname
   
   // Public paths that don't require authentication
   const publicPaths = ['/', '/login', '/signup', '/api']
-  const isPublicPath = publicPaths.some(publicPath => path === publicPath || path.startsWith('/api/'))
+  const isPublicPath = publicPaths.some(publicPath => 
+    path === publicPath || path.startsWith('/api/') || path.startsWith('/_next/'))
   
   if (isPublicPath) {
     return NextResponse.next()
@@ -36,31 +40,36 @@ export function middleware(request: NextRequest) {
     }
     
     // Check correct role for the path
-    const isDonorPath = path.startsWith('/donor')
-    const isNgoPath = path.startsWith('/ngo')
+    const donorPaths = ['/donor']
+    const ngoPaths = ['/ngo']
     
-    // For donor routes, check if user is a donor
-    if (isDonorPath && decoded.type !== 'user' && decoded.type !== 'donor') {
+    const isDonorPath = donorPaths.some(prefix => path.startsWith(prefix))
+    const isNgoPath = ngoPaths.some(prefix => path.startsWith(prefix))
+    
+    if (isDonorPath && decoded.type !== 'user') {
       return NextResponse.redirect(new URL('/', request.url))
     }
     
-    // For NGO routes, check if user is an NGO
     if (isNgoPath && decoded.type !== 'ngo') {
       return NextResponse.redirect(new URL('/', request.url))
     }
-    
-    // User is authenticated and has correct role
-    return NextResponse.next()
+
+    // Clone the request headers and add the token
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('Authorization', `Bearer ${token}`)
+
+    // Return the response with modified headers
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    })
   } catch (error) {
-    // Invalid token
+    // If token is invalid, redirect to login
     return NextResponse.redirect(new URL('/login', request.url))
   }
 }
 
-// Configure which routes the middleware should run on
 export const config = {
-  matcher: [
-    // Apply to all routes except static files and api
-    '/((?!_next/static|_next/image|favicon.ico).*)',
-  ],
-} 
+  matcher: '/((?!_next/static|_next/image|favicon.ico).*)',
+}
