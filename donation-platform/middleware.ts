@@ -28,7 +28,9 @@ export function middleware(request: NextRequest) {
   
   // If no token exists, redirect to login
   if (!token) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    const response = NextResponse.redirect(new URL('/login', request.url))
+    response.headers.set('x-middleware-cache', 'no-cache')
+    return response
   }
   
   try {
@@ -38,7 +40,9 @@ export function middleware(request: NextRequest) {
     
     // Check if token has expired
     if (decoded.exp < currentTime) {
-      return NextResponse.redirect(new URL('/login', request.url))
+      const response = NextResponse.redirect(new URL('/login', request.url))
+      response.headers.set('x-middleware-cache', 'no-cache')
+      return response
     }
     
     // Check correct role for the path
@@ -49,26 +53,39 @@ export function middleware(request: NextRequest) {
     const isNgoPath = ngoPaths.some(prefix => path.startsWith(prefix))
     
     if (isDonorPath && decoded.type !== 'user') {
-      return NextResponse.redirect(new URL('/', request.url))
+      const response = NextResponse.redirect(new URL('/', request.url))
+      response.headers.set('x-middleware-cache', 'no-cache')
+      return response
     }
     
     if (isNgoPath && decoded.type !== 'ngo') {
-      return NextResponse.redirect(new URL('/', request.url))
+      const response = NextResponse.redirect(new URL('/', request.url))
+      response.headers.set('x-middleware-cache', 'no-cache')
+      return response
     }
 
     // Clone the request headers and add the token
     const requestHeaders = new Headers(request.headers)
     requestHeaders.set('Authorization', `Bearer ${token}`)
+    requestHeaders.set('x-middleware-cache', 'no-cache')
 
     // Return the response with modified headers
-    return NextResponse.next({
+    const response = NextResponse.next({
       request: {
         headers: requestHeaders,
       },
     })
+
+    // Add security headers
+    response.headers.set('Cache-Control', 'no-store, must-revalidate')
+    response.headers.set('x-middleware-cache', 'no-cache')
+    
+    return response
   } catch (error) {
     // If token is invalid, redirect to login
-    return NextResponse.redirect(new URL('/login', request.url))
+    const response = NextResponse.redirect(new URL('/login', request.url))
+    response.headers.set('x-middleware-cache', 'no-cache')
+    return response
   }
 }
 
