@@ -9,6 +9,8 @@ interface DecodedToken {
 }
 
 export function middleware(request: NextRequest) {
+  console.log('Cookie Header:', request.headers.get('cookie'));
+  console.log('All Headers:', Object.fromEntries(request.headers));
   // Get token from either cookie or Authorization header
   const token = request.headers.get('Authorization')?.split(' ')[1] || 
                 request.cookies.get('token')?.value
