@@ -46,13 +46,10 @@ export function middleware(request: NextRequest) {
     }
     
     // Check correct role for the path
-    const donorPaths = ['/donor']
-    const ngoPaths = ['/ngo']
+    const isDonorPath = path.startsWith('/donor')
+    const isNgoPath = path.startsWith('/ngo')
     
-    const isDonorPath = donorPaths.some(prefix => path.startsWith(prefix))
-    const isNgoPath = ngoPaths.some(prefix => path.startsWith(prefix))
-    
-    if (isDonorPath && decoded.type !== 'user') {
+    if (isDonorPath && decoded.type !== 'user' && decoded.type !== 'donor') {
       const response = NextResponse.redirect(new URL('/', request.url))
       response.headers.set('x-middleware-cache', 'no-cache')
       return response
@@ -89,6 +86,10 @@ export function middleware(request: NextRequest) {
   }
 }
 
+// Configure which routes the middleware should run on
 export const config = {
-  matcher: '/((?!_next/static|_next/image|favicon.ico).*)',
+  matcher: [
+    // Apply to all routes except static files and api
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
 }

@@ -41,7 +41,9 @@ export async function POST(req: Request) {
         { 
           status: 400,
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Credentials': 'true'
           }
         }
       );
@@ -55,7 +57,9 @@ export async function POST(req: Request) {
         { 
           status: 400,
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Credentials': 'true'
           }
         }
       );
@@ -68,10 +72,6 @@ export async function POST(req: Request) {
       { expiresIn: '7d' }
     );
 
-    // Get the origin from the request
-    const origin = req.headers.get('origin') || '*';
-    const isProduction = process.env.NODE_ENV === 'production';
-
     // Create response with cookie
     const response = new NextResponse(
       JSON.stringify({
@@ -83,9 +83,9 @@ export async function POST(req: Request) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Credentials': 'true',
-          'Set-Cookie': `token=${token}; Path=/; HttpOnly; ${isProduction ? 'Secure; SameSite=None' : 'SameSite=Lax'}; Max-Age=${7 * 24 * 60 * 60}`
+          'Set-Cookie': `token=${token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${7 * 24 * 60 * 60}`
         }
       }
     );
@@ -99,7 +99,9 @@ export async function POST(req: Request) {
       {
         status: 500,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Credentials': 'true'
         }
       }
     );
