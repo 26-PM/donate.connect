@@ -521,7 +521,6 @@ function NgoDashboard() {
   
   return (
     <div className="min-h-screen flex">
-      {/* Sidebar */}
       <div className="hidden md:flex w-64 flex-col border-r bg-muted/40 h-screen sticky top-0">
         <div className="flex h-16 items-center border-b px-6">
           <Link href="/" className="flex items-center gap-2 font-bold">
