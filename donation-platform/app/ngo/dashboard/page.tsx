@@ -77,8 +77,12 @@ interface DonationItem {
 
 interface Donation {
   _id: string;
+  id?: string;  // Adding optional id field
   status: string;
   createdAt: string;
+  date?: string;  // Adding optional date field
+  donor?: string; // Adding optional donor field
+  completedDate?: string;
   user: User;
   items: DonationItem[];
   pickupAddress: string;
@@ -89,15 +93,34 @@ interface Donation {
   pickupTime: string;
   pickupOption: string;
   progress?: number;
-  completedDate?: string;
   notes?: string;
   rejectionReason?: string;
+  beneficiaries?: string; // Adding optional beneficiaries field
 }
 
+// New interface for decoded JWT token
 interface DecodedToken {
   id: string;
   exp: number;
   name?: string;
+}
+
+// Update type for axios response
+interface ApiResponse {
+  donations?: Donation[];
+  data?: Donation[];
+  status?: string;
+  message?: string;
+}
+
+interface AxiosResponse {
+  data: ApiResponse;
+}
+
+// Location type for current user location
+interface Location {
+  lat: number;
+  lng: number;
 }
 
 // Utility functions
@@ -152,119 +175,155 @@ export default function NgoDashboardPage() {
 }
 
 function NgoDashboard() {
-  const router = useRouter()
+  const [activeTab, setActiveTab] = useState("available");
+  const [availableDonations, setAvailableDonations] = useState<Donation[]>([]);
+  const [acceptedDonations, setAcceptedDonations] = useState<Donation[]>([]);
+  const [completedDonations, setCompletedDonations] = useState<Donation[]>([]);
+  const [rejectedDonations, setRejectedDonations] = useState<Donation[]>([]);
+  const [loadingDonationId, setLoadingDonationId] = useState<string | null>(null);
+  const [actionType, setActionType] = useState<string | null>(null);
+  const [selectedDonationId, setSelectedDonationId] = useState<string | null>(null);
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [isRejectionReasonValid, setIsRejectionReasonValid] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedDonation, setSelectedDonation] = useState<Donation | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
+  const [ngoName, setNgoName] = useState("");
+  const router = useRouter();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("available")
-  const [selectedDonation, setSelectedDonation] = useState<Donation | null>(null)
-  const [detailsOpen, setDetailsOpen] = useState(false)
-  const [ngoName, setNgoName] = useState<string>("NGO")
-
-  const [availableDonations, setAvailableDonations] = useState<Donation[]>([])
-  const [acceptedDonations, setAcceptedDonations] = useState<Donation[]>([])
-  const [completedDonations, setCompletedDonations] = useState<Donation[]>([])
-  const [rejectedDonations, setRejectedDonations] = useState<Donation[]>([])
-  const [loadingDonationId, setLoadingDonationId] = useState<string | null>(null)
-  const [actionType, setActionType] = useState<string | null>(null)
-  const [selectedDonationId, setSelectedDonationId] = useState<string | null>(null)
-  const [showRejectionModal, setShowRejectionModal] = useState(false)
-  const [rejectionReason, setRejectionReason] = useState("")
-  const [isRejectionReasonValid, setIsRejectionReasonValid] = useState(false)
 
   const handleAcceptDonation = async (donationId: string) => {
     try {
-      setLoadingDonationId(donationId)
-      setActionType('accept')
-      
+      setLoadingDonationId(donationId);
+      setActionType('accept');
+
       const token = localStorage.getItem('token');
       if (!token) {
-        toast({
-          title: "Authentication Error",
-          description: "Please login again to continue.",
-          variant: "destructive",
-        });
+        router.push('/login');
         return;
       }
 
-      // Find the donation in availableDonations to check its pickup date
-      const donation = availableDonations.find(d => d._id === donationId || d.id === donationId);
-      
-      if (!donation) {
-        toast({
-          title: "Error",
-          description: "Donation not found.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Validate the pickup date
-      if (donation.pickupOption === 'scheduled' && donation.pickupDate) {
-        const pickupDate = new Date(donation.pickupDate);
-        const today = new Date();
-        
-        // Set time to beginning of day for comparison
-        today.setHours(0, 0, 0, 0);
-        
-        if (pickupDate < today) {
-          toast({
-            title: "Cannot Accept",
-            description: "The scheduled pickup date has already passed. Please contact the donor to reschedule.",
-            variant: "destructive",
-          });
-          setLoadingDonationId(null);
-          setActionType(null);
-          return;
-        }
+      await axios.post(`/api/ngo/donations/${donationId}/accept`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Move donation from available to accepted
+      const donationIndex = availableDonations.findIndex(d => d._id === donationId || d.id === donationId);
+      if (donationIndex !== -1) {
+        const [acceptedDonation] = availableDonations.splice(donationIndex, 1);
+        acceptedDonation.status = 'Accepted';
+        setAvailableDonations([...availableDonations]);
+        setAcceptedDonations([...acceptedDonations, acceptedDonation]);
       }
 
-      const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/${donationId}/status`,
-        { status: 'Accepted' },
-        { 
-          withCredentials: true,
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-
-      if (response.status === 200) {
-        // Find the donation in availableDonations
-        const donationIndex = availableDonations.findIndex(d => d._id === donationId || d.id === donationId);
-        if (donationIndex !== -1) {
-          // Create updated donation with status changed to 'Accepted'
-          const updatedDonation = { ...availableDonations[donationIndex], status: 'Accepted' };
-          
-          // Remove from available and add to accepted
-          const newAvailable = [...availableDonations];
-          newAvailable.splice(donationIndex, 1);
-          
-          setAvailableDonations(newAvailable);
-          setAcceptedDonations([...acceptedDonations, updatedDonation]);
-          
-          toast({
-            title: "Donation Accepted",
-            description: `You have accepted donation DON-${donationId.slice(-4)}. Please arrange pickup.`,
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Failed to accept donation:", error);
       toast({
-        title: "Error accepting donation",
-        description: "Please try again later.",
+        title: "Success!",
+        description: "Donation accepted successfully.",
+      });
+    } catch (error) {
+      console.error('Error accepting donation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to accept donation. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setLoadingDonationId(null)
-      setActionType(null)
+      setLoadingDonationId(null);
+      setActionType(null);
     }
-  }
+  };
+
+  const handleRejectDonation = async (donationId: string, reason: string) => {
+    try {
+      setLoadingDonationId(donationId);
+      setActionType('reject');
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+
+      await axios.post(`/api/ngo/donations/${donationId}/reject`, {
+        reason
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Move donation from available to rejected
+      const donationIndex = availableDonations.findIndex(d => d._id === donationId || d.id === donationId);
+      if (donationIndex !== -1) {
+        const [rejectedDonation] = availableDonations.splice(donationIndex, 1);
+        rejectedDonation.status = 'Rejected';
+        rejectedDonation.rejectionReason = reason;
+        setAvailableDonations([...availableDonations]);
+        setRejectedDonations([...rejectedDonations, rejectedDonation]);
+      }
+
+      toast({
+        title: "Success!",
+        description: "Donation rejected successfully.",
+      });
+
+      closeRejectionModal();
+    } catch (error) {
+      console.error('Error rejecting donation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject donation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingDonationId(null);
+      setActionType(null);
+    }
+  };
+
+  const handleMarkAsCompleted = async (donationId: string) => {
+    try {
+      setLoadingDonationId(donationId);
+      setActionType('complete');
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+
+      await axios.post(`/api/ngo/donations/${donationId}/complete`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Move donation from accepted to completed
+      const donationIndex = acceptedDonations.findIndex(d => d._id === donationId || d.id === donationId);
+      if (donationIndex !== -1) {
+        const [completedDonation] = acceptedDonations.splice(donationIndex, 1);
+        completedDonation.status = 'Completed';
+        completedDonation.completedDate = new Date().toISOString();
+        setAcceptedDonations([...acceptedDonations]);
+        setCompletedDonations([...completedDonations, completedDonation]);
+      }
+
+      toast({
+        title: "Success!",
+        description: "Donation marked as completed successfully.",
+      });
+    } catch (error) {
+      console.error('Error completing donation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark donation as completed. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingDonationId(null);
+      setActionType(null);
+    }
+  };
 
   const openRejectionModal = (donationId: string) => {
     setSelectedDonationId(donationId);
-    setRejectionReason("");
-    setIsRejectionReasonValid(false);
     setShowRejectionModal(true);
   };
 
@@ -272,201 +331,52 @@ function NgoDashboard() {
     setSelectedDonationId(null);
     setRejectionReason("");
     setShowRejectionModal(false);
+    setIsRejectionReasonValid(false);
   };
 
-  const handleRejectDonation = async (donationId: string, reason: string = "") => {
-    try {
-      setLoadingDonationId(donationId)
-      setActionType('reject')
-      
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast({
-          title: "Authentication Error",
-          description: "Please login again to continue.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/${donationId}/status`,
-        { 
-          status: 'Rejected',
-          rejectionReason: reason 
+  useEffect(() => {
+    // Get user's current location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCurrentLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
         },
-        { 
-          withCredentials: true,
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        (error) => {
+          console.error('Error getting location:', error);
         }
       );
-
-      if (response.status === 200) {
-        // Find the donation in availableDonations
-        const donationIndex = availableDonations.findIndex(d => d._id === donationId || d.id === donationId);
-        if (donationIndex !== -1) {
-          // Create updated donation with status changed to 'Rejected'
-          const updatedDonation = { 
-            ...availableDonations[donationIndex], 
-            status: 'Rejected',
-            rejectionReason: reason
-          };
-          
-          // Remove from available and add to rejected
-          const newAvailable = [...availableDonations];
-          newAvailable.splice(donationIndex, 1);
-          
-          setAvailableDonations(newAvailable);
-          setRejectedDonations([...rejectedDonations, updatedDonation]);
-          
-          toast({
-            title: "Donation Rejected",
-            description: `You have rejected donation DON-${donationId.slice(-4)}.`,
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Failed to reject donation:", error);
-      toast({
-        title: "Error rejecting donation",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingDonationId(null)
-      setActionType(null)
-      closeRejectionModal();
     }
-  }
-
-  const handleMarkAsCompleted = async (donationId: string) => {
-    try {
-      setLoadingDonationId(donationId)
-      setActionType('complete')
-      
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast({
-          title: "Authentication Error",
-          description: "Please login again to continue.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/${donationId}/status`,
-        { 
-          status: 'Completed',
-          completedDate: new Date().toISOString() 
-        },
-        { 
-          withCredentials: true,
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-
-      if (response.status === 200) {
-        // Find the donation in acceptedDonations
-        const donationIndex = acceptedDonations.findIndex(d => d._id === donationId || d.id === donationId);
-        if (donationIndex !== -1) {
-          // Create updated donation with status changed to 'Completed'
-          const updatedDonation = { 
-            ...acceptedDonations[donationIndex], 
-            status: 'Completed',
-            completedDate: new Date().toISOString(),
-            progress: 100
-          };
-          
-          // Remove from accepted and add to completed
-          const newAccepted = [...acceptedDonations];
-          newAccepted.splice(donationIndex, 1);
-          
-          setAcceptedDonations(newAccepted);
-          setCompletedDonations([...completedDonations, updatedDonation]);
-          
-          toast({
-            title: "Donation Completed",
-            description: `You have marked donation DON-${donationId.slice(-4)} as collected.`,
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Failed to complete donation:", error);
-      toast({
-        title: "Error marking donation as collected",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingDonationId(null)
-      setActionType(null)
-    }
-  }
+  }, []);
 
   useEffect(() => {
     const fetchDonationsWithLocation = async () => {
       try {
-        const token = localStorage.getItem('token')
-        if (!token) return;
-
-        // Get current location
-        let currentLocation: Coordinates | null = null;
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 5000,
-              maximumAge: 0
-            });
-          });
-          currentLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          console.log("Current location:", currentLocation);
-        } catch (error) {
-          console.error("Error getting current location:", error);
-          toast({
-            title: "Location Error",
-            description: "Unable to get your current location. Distances will not be shown.",
-            variant: "destructive",
-          });
+        const token = localStorage.getItem('token');
+        if (!token) {
+          router.push('/login');
+          return;
         }
 
-        // Try to extract NGO name from token
-        try {
-          const decodedToken = jwtDecode<DecodedToken & { name?: string }>(token)
-          if (decodedToken.name) {
-            setNgoName(decodedToken.name)
-          } else {
-            setNgoName("NGO Dashboard")
-          }
-        } catch (tokenError) {
-          console.error("Error decoding token:", tokenError)
+        const decoded = jwtDecode<DecodedToken>(token);
+        setNgoName(decoded.name || '');
+
+        if (decoded.exp * 1000 < Date.now()) {
+          localStorage.removeItem('token');
+          router.push('/login');
+          return;
         }
 
-        const decodedToken = jwtDecode<DecodedToken>(token)
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/ngo/${decodedToken.id}`,
-          {
-            withCredentials: true,
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          }
-        );
+        const response = await axios.get<ApiResponse>('/api/ngo/donations', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
-        const donations = Array.isArray(response.data) 
-          ? response.data 
-          : (response.data.donations || response.data.data || []);
-
+        const fetchedDonations = response.data?.donations || response.data?.data || [];
+        
         // Process donations with distance calculation
-        const processedDonations = await Promise.all(donations.map(async (d: any) => {
+        const processedDonations = await Promise.all(fetchedDonations.map(async (d: any) => {
           let distance: string | undefined;
           if (currentLocation && d.pickupAddress) {
             const donationCoords = await getCoordinates(d.pickupAddress);
