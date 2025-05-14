@@ -784,7 +784,7 @@ function NgoDashboard() {
                           <p className="text-xs text-muted-foreground">{donation.distance} away</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2"></div>
+                      <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">
                           Scheduled: {new Date(donation.pickupDate || new Date()).toLocaleDateString()} - {donation.pickupTime || 'Not specified'}
