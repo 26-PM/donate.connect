@@ -105,7 +105,7 @@ export default function NGOsPage() {
       setLoading(true)
       try {
         const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/ngos`)
-        // Add random images to each NGO
+        // // Add random images to each NGO
         const ngosWithImages = (res.data.data || []).map((ngo: any, index: number) => ({
           ...ngo,
           imageUrl: ngoImages[index % ngoImages.length] || fallbackImage,
@@ -119,7 +119,7 @@ export default function NGOsPage() {
         }))
         
         setNgos(ngosWithImages)
-        console.log(res.data.data)
+        console.log(ngosWithImages)
       } catch (err) {
         console.error("Failed to fetch NGOs:", err)
       } finally {
