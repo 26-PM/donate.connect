@@ -18,6 +18,22 @@ interface DecodedToken {
   exp: number;
 }
 
+interface Feedback {
+  ngo?: {
+    name: string;
+  };
+  rating: number;
+  ease: number;
+  pickup: string;
+  pickupComment?: string;
+  recommend: string;
+  improvement: string;
+  createdAt: string;
+  donor?: {
+    name: string;
+  };
+}
+
 export default function LandingPage() {
   type Testimonial = { id: number; text: string; author: string };
 
@@ -26,6 +42,7 @@ export default function LandingPage() {
   const [showRealTestimonials, setShowRealTestimonials] = useState(false);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -74,7 +91,6 @@ export default function LandingPage() {
   }, [router]);
 
   const { ngoId } = useParams(); // gets the ngoId from the route (e.g., /testimonial/ngo/123)
-  const [feedbacks, setFeedbacks] = useState([]);
 
   useEffect(() => {
     fetch("http://localhost:8080/api/feedback")
@@ -134,8 +150,8 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2 font-bold">
-            <Gift className="h-6 w-6 text-primary animate-bounce" />
-            <span className="animate-bounce">DonateConnect</span>
+            <Gift className="h-6 w-6 text-primary" />
+            <span>DonateConnect</span>
           </div>
           
           {/* Mobile menu button */}
@@ -215,7 +231,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-4">
             <button
               onClick={toggleDarkMode}
-              className="animate-bounce p-2 rounded-full border dark:border-border hover:bg-muted/80 dark:hover:bg-muted/20 transition-colors"
+              className="p-2 rounded-full border dark:border-border hover:bg-muted/80 dark:hover:bg-muted/20 transition-colors"
               aria-label="Toggle Dark Mode"
             >
               {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
