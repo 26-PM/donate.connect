@@ -14,6 +14,7 @@ export async function OPTIONS() {
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',
+      'Access-Control-Allow-Credentials': 'true'
     },
   });
 }
@@ -40,7 +41,9 @@ export async function POST(req: Request) {
         { 
           status: 400,
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Credentials': 'true'
           }
         }
       );
@@ -54,7 +57,9 @@ export async function POST(req: Request) {
         { 
           status: 400,
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Credentials': 'true'
           }
         }
       );
@@ -78,7 +83,9 @@ export async function POST(req: Request) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Set-Cookie': `token=${token}; Path=/; HttpOnly; Secure=${process.env.NODE_ENV === 'production'}; SameSite=Strict; Max-Age=${7 * 24 * 60 * 60}`
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Credentials': 'true',
+          'Set-Cookie': `token=${token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${7 * 24 * 60 * 60}`
         }
       }
     );
@@ -92,7 +99,9 @@ export async function POST(req: Request) {
       {
         status: 500,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Credentials': 'true'
         }
       }
     );
