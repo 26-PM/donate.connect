@@ -6,6 +6,8 @@ import Image from "next/image";
 import { ArrowRight, Gift, Clock, CheckCircle, Star, Sun, Moon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
+// import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom"; // if using react-router
 
 import { Button } from "@/components/ui/button";
 import TestimonialForm from '@/components/ui/testimonial-form';
@@ -70,6 +72,33 @@ export default function LandingPage() {
 
     checkAuth();
   }, [router]);
+
+  const { ngoId } = useParams(); // gets the ngoId from the route (e.g., /testimonial/ngo/123)
+  const [feedbacks, setFeedbacks] = useState([]);
+
+  useEffect(() => {
+    fetch("http://localhost:8080/api/feedback")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setFeedbacks(data.data);
+        }
+      })
+      .catch(err => console.error("Error fetching feedback:", err));
+  }, []);
+
+  // const [feedbacks, setFeedbacks] = useState([]);
+  // useEffect(() => {
+  //   fetch(`/api/feedback/ngo/${ngoId}`)
+  //     .then(res => res.json())
+  //     .then(data => {
+  //       if (data.success) {
+  //         setFeedbacks(data.data);
+  //       }
+  //     })
+  //     .catch(err => console.error("Error fetching feedback:", err));
+  // }, []);
+  
 
   useEffect(() => {
     if (showRealTestimonials) {
@@ -321,42 +350,73 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Testimonials Section */}
-        <section id="testimonials" className="bg-muted/50 dark:bg-muted/10 py-12 sm:py-16 md:py-24">
+        {/* Testimonials Section Check */}
+        {/* <section id="testimonials" className="bg-muted/50 dark:bg-muted/10 py-12 sm:py-16 md:py-24">
           <div className="container px-4 sm:px-6">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold tracking-tight">What People Say</h2>
+              <h2 className="text-3xl font-bold tracking-tight">Testimonials</h2>
               <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
-                Hear from donors and NGOs who have used our platform to make a difference.
+                Hear from our users about their experiences with our platform.
               </p>
-              {/* <button
-                onClick={() => setShowRealTestimonials(!showRealTestimonials)}
-                className="mt-4 px-4 py-2 bg-primary text-white rounded"
-              >
-                {showRealTestimonials ? "Show Fake Testimonials" : "Show Real Testimonials"}
-              </button> */}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
               {testimonials.map((testimonial) => (
-                <div key={testimonial.id} className="bg-background rounded-lg p-6 shadow-sm dark:border dark:border-border">
-                  <p className="text-muted-foreground mb-4">"{testimonial.text}"</p>
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-muted dark:bg-muted/50 flex items-center justify-center">
-                      <span className="font-medium">{testimonial.author[0]}</span>
-                    </div>
-                    <div>
-                      <h4 className="font-medium">{testimonial.author}</h4>
-                    </div>
-                  </div>
+                <div key={testimonial.id} className="border dark:border-border rounded-lg p-6">
+                  <p className="text-lg italic mb-4">"{testimonial.text}"</p>
+                  <p className="text-sm text-muted-foreground">— {testimonial.author}</p>
                 </div>
               ))}
             </div>
-            <div className="mt-12">
-              <TestimonialForm />
-            </div>
           </div>
-        </section>
+          <div className="text-center mt-12">
+            <Button
+              variant="outline"
+              onClick={() => setShowRealTestimonials(!showRealTestimonials)}
+              className="animate-bounce"
+            >
+              {showRealTestimonials ? "Show Fake Testimonials" : "Show Real Testimonials"}
+            </Button>
+          </div>
+          </section> */}
 
+        {/* Testimonial Section */}
+        <section id="testimonials" className="bg-muted/50 dark:bg-muted/10 py-12 sm:py-16 md:py-24">
+        <div className="px-6 py-4 max-w-6xl mx-auto">
+  <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold tracking-tight">Testimonials</h2>
+              <p className="text-muted-foreground mt-4 max-w-2xl mx-auto">
+                Hear from our users about their experiences with our platform.
+              </p>
+            </div>
+  {feedbacks.length === 0 ? (
+    <p className="text-lg text-gray-600">No feedback available.</p>
+  ) : (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {feedbacks.map((fb, index) => (
+        <div key={index} className="bg-white border border-gray-200 rounded-lg shadow-md p-6 transition-transform duration-300 transform hover:translate-y-1 hover:shadow-lg">
+          <h3 className="text-xl font-semibold text-gray-800 mb-4">{fb.ngo?.name || "NGO Name Unavailable"}</h3>
+          <div className="space-y-4">
+            <p className="text-gray-700"><strong>Rating:</strong> {fb.rating} ⭐</p>
+            <p className="text-gray-700"><strong>Ease of Use:</strong> {fb.ease}/5</p>
+            <p className="text-gray-700"><strong>Pickup Experience:</strong> {fb.pickup}</p>
+            {fb.pickup === "Could be improved" && (
+              <p className="text-gray-700"><strong>Pickup Comment:</strong> {fb.pickupComment}</p>
+            )}
+            <p className="text-gray-700"><strong>Recommend:</strong> {fb.recommend}</p>
+            <p className="text-gray-700"><strong>Improvement Suggestion:</strong> {fb.improvement}</p>
+            {/* <p className="text-gray-700"><strong>Donor:</strong> {fb.donor?.name || "Anonymous"}</p> */}
+            <p className="text-gray-500 text-sm"><em>Date:</em> {new Date(fb.createdAt).toLocaleDateString()}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+</section>
+
+
+
+{/* // endede testi */}
         {/* Top NGOs Section */}
         <section id="top-ngos" className="py-12 sm:py-16 md:py-24">
           <div className="container px-4 sm:px-6">

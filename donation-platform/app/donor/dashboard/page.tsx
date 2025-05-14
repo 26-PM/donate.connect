@@ -371,12 +371,14 @@ function DonorDashboard() {
                         View Details
                       </Link>
                     </Button>
-                    <Button variant="secondary" className="flex-1">
+                    <Button variant="outline" className="flex-1" asChild>
+                    <Link href={`/feedback?donationId=${donation.ngo._id}`}>
                       Leave Feedback
+                      </Link>
                     </Button>
                   </CardFooter>
                 </Card>
-              ))
+              ))  
             )}
           </TabsContent>
 

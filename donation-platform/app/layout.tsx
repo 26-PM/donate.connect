@@ -2,6 +2,8 @@ import type React from "react"
 import "@/app/globals.css"
 import { Inter } from "next/font/google"
 import { Toaster } from "@/components/ui/toaster"
+import { ToastContainer } from "react-toastify";
+
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -20,6 +22,7 @@ export default function RootLayout({
       <body className={inter.className}>
         {children}
         <Toaster />
+        <ToastContainer />
       </body>
     </html>
   )
