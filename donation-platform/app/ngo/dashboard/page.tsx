@@ -1,70 +1,107 @@
 "use client"
 
-import { useState } from "react"
-import { useEffect } from "react"
-
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { jwtDecode } from "jwt-decode";
+import axios from "axios";
+import { useToast } from "@/components/ui/use-toast";
+import NGORoute from "@/components/auth/ngo-route";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 import {
+  AlertCircle,
   Bell,
   Building,
   Calendar,
   CheckCircle,
   Clock,
+  FileText,
   Gift,
   Home,
+  Loader2,
   LogOut,
+  Mail,
   MapPin,
   Package,
+  Phone,
   Settings,
   User,
   Users,
   X,
-  Phone,
-  Mail,
-  FileText,
-  Camera,
-  ClipboardList,
-  Eye,
-  Loader2,
-  AlertCircle,
-} from "lucide-react"
-
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useToast } from "@/components/ui/use-toast"
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import NGORoute from "@/components/auth/ngo-route"
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetDescription, 
-  SheetHeader, 
-  SheetTitle
-} from "@/components/ui/sheet"
-import { Textarea } from "@/components/ui/textarea"
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-import axios from "axios";
-import { jwtDecode, JwtPayload } from "jwt-decode"
-
-interface DecodedToken extends JwtPayload {
-  id: string;
+interface Coordinates {
+  lat: number;
+  lng: number;
 }
 
-// Utility function to calculate distance between two points
+interface User {
+  _id?: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+}
+
+interface DonationItem {
+  itemName: string;
+  quantity: number;
+  description?: string;
+  images?: Array<{
+    url: string;
+    analysis?: string;
+  }>;
+}
+
+interface Donation {
+  _id: string;
+  status: string;
+  createdAt: string;
+  user: User;
+  items: DonationItem[];
+  pickupAddress: string;
+  location?: string;
+  coordinates?: Coordinates;
+  distance?: string;
+  pickupDate: string;
+  pickupTime: string;
+  pickupOption: string;
+  progress?: number;
+  completedDate?: string;
+  notes?: string;
+  rejectionReason?: string;
+}
+
+interface DecodedToken {
+  id: string;
+  exp: number;
+  name?: string;
+}
+
+// Utility functions
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+  
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -77,16 +114,18 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return Math.round(distance * 10) / 10; // Round to 1 decimal place
 }
 
-// Function to convert address to coordinates using Geocoding API
-async function getCoordinates(address: string): Promise<{ lat: number; lng: number } | null> {
+async function getCoordinates(address: string): Promise<Coordinates | null> {
   try {
+    // Using OpenStreetMap's Nominatim service (free, no API key required)
     const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`
     );
     const data = await response.json();
-    if (data.results && data.results[0]) {
-      const { lat, lng } = data.results[0].geometry.location;
-      return { lat, lng };
+    if (data && data[0]) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon)
+      };
     }
     return null;
   } catch (error) {
@@ -95,45 +134,11 @@ async function getCoordinates(address: string): Promise<{ lat: number; lng: numb
   }
 }
 
-interface User {
-  _id?: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  name?: string;
-  phone?: string;
-}
-
-interface ImageData {
-  url: string;
-  analysis?: string;
-}
-
-interface Donation {
-  _id: string;
-  id?: string;
-  status: string;
-  createdAt: string;
-  date?: string;
-  user: User;
-  donor?: string;
-  items: Array<{
-    itemName: string;
-    quantity: number;
-    description?: string;
-    images?: ImageData[];
-  }>;
-  pickupAddress: string;
-  location?: string;
-  distance?: string | number;
-  pickupDate: string;
-  pickupTime: string;
-  progress?: number;
-  completedDate?: string;
-  beneficiaries?: string;
-  pickupOption: string;
-  notes?: string;
-  rejectionReason?: string;
+function formatDistance(distance: number): string {
+  if (distance < 1) {
+    return `${Math.round(distance * 1000)}m`;
+  }
+  return `${distance}km`;
 }
 
 export default function NgoDashboardPage() {
@@ -146,8 +151,8 @@ export default function NgoDashboardPage() {
 
 function NgoDashboard() {
   const router = useRouter()
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("available")
-  const { toast } = useToast()
   const [selectedDonation, setSelectedDonation] = useState<Donation | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [ngoName, setNgoName] = useState<string>("NGO")
@@ -402,59 +407,99 @@ function NgoDashboard() {
   }
 
   useEffect(() => {
-    const fetchDonations = async () => {
+    const fetchDonationsWithLocation = async () => {
       try {
         const token = localStorage.getItem('token')
-        if (token) {
-          // Try to extract NGO name from token
-          try {
-            const decodedToken = jwtDecode<DecodedToken & { name?: string }>(token)
-            if (decodedToken.name) {
-              setNgoName(decodedToken.name)
-            } else {
-              // If name not in token, use default
-              setNgoName("NGO Dashboard")
-            }
-          } catch (tokenError) {
-            console.error("Error decoding token:", tokenError)
-          }
+        if (!token) return;
 
-          const decodedToken = jwtDecode<DecodedToken>(token)
-          const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/ngo/${decodedToken.id}`, {
+        // Get current location
+        let currentLocation: Coordinates | null = null;
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 0
+            });
+          });
+          currentLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          console.log("Current location:", currentLocation);
+        } catch (error) {
+          console.error("Error getting current location:", error);
+          toast({
+            title: "Location Error",
+            description: "Unable to get your current location. Distances will not be shown.",
+            variant: "destructive",
+          });
+        }
+
+        // Try to extract NGO name from token
+        try {
+          const decodedToken = jwtDecode<DecodedToken & { name?: string }>(token)
+          if (decodedToken.name) {
+            setNgoName(decodedToken.name)
+          } else {
+            setNgoName("NGO Dashboard")
+          }
+        } catch (tokenError) {
+          console.error("Error decoding token:", tokenError)
+        }
+
+        const decodedToken = jwtDecode<DecodedToken>(token)
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/donations/ngo/${decodedToken.id}`,
+          {
             withCredentials: true,
             headers: {
               'Authorization': `Bearer ${token}`
             }
-          })
-          console.log(response.data)
-  
-          // Check the structure of the response data
-          const donations = Array.isArray(response.data) 
-            ? response.data 
-            : (response.data.donations || response.data.data || []);
-            
-          // Map the API data to our frontend model and set default values
-          const processedDonations = donations.map((d: any) => ({
+          }
+        );
+
+        const donations = Array.isArray(response.data) 
+          ? response.data 
+          : (response.data.donations || response.data.data || []);
+
+        // Process donations with distance calculation
+        const processedDonations = await Promise.all(donations.map(async (d: any) => {
+          let distance: string | undefined;
+          if (currentLocation && d.pickupAddress) {
+            const donationCoords = await getCoordinates(d.pickupAddress);
+            if (donationCoords) {
+              const dist = calculateDistance(
+                currentLocation.lat,
+                currentLocation.lng,
+                donationCoords.lat,
+                donationCoords.lng
+              );
+              distance = formatDistance(dist);
+            }
+          }
+
+          return {
             ...d,
-            id: d._id, // Add id field as alias to _id for compatibility
-            date: d.createdAt, // Add date field as alias to createdAt
+            id: d._id,
+            date: d.createdAt,
             donor: d.user ? `${d.user.firstName} ${d.user.lastName}` : 'Unknown',
             location: d.pickupAddress,
-            progress: d.progress || 50, // Default progress for accepted donations
-          }));
-          
-          const pending = processedDonations.filter((res: Donation) => res.status === 'Pending');
-          const accepted = processedDonations.filter((res: Donation) => res.status === 'Accepted');
-          const rejected = processedDonations.filter((res: Donation) => res.status === 'Rejected');
-          const completed = processedDonations.filter((res: Donation) => res.status === 'Completed');
+            distance: distance || 'Distance unavailable',
+            progress: d.progress || 50,
+          };
+        }));
 
-          setAvailableDonations(pending || []);
-          setAcceptedDonations(accepted || []);
-          setCompletedDonations(completed || []);
-          setRejectedDonations(rejected || []);
-        } else {
-          console.error("No token found")
-        }
+        const pending = processedDonations.filter((d: Donation) => d.status === 'Pending');
+        const accepted = processedDonations.filter((d: Donation) => d.status === 'Accepted');
+        const rejected = processedDonations.filter((d: Donation) => d.status === 'Rejected');
+        const completed = processedDonations.filter((d: Donation) => d.status === 'Completed');
+
+        setAvailableDonations(pending || []);
+        setAcceptedDonations(accepted || []);
+        setCompletedDonations(completed || []);
+        setRejectedDonations(rejected || []);
+
       } catch (error) {
         console.error("Failed to fetch donation data:", error)
         toast({
@@ -464,8 +509,8 @@ function NgoDashboard() {
         })
       }
     }
-  
-    fetchDonations()
+
+    fetchDonationsWithLocation();
   }, [])
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -640,7 +685,7 @@ function NgoDashboard() {
                         <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
                           <p className="text-sm">{donation.pickupAddress}</p>
-                          {/* <p className="text-xs text-muted-foreground">{donation.distance} away</p> */}
+                          <p className="text-xs text-muted-foreground">{donation.distance} away</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -738,7 +783,7 @@ function NgoDashboard() {
                           <p className="text-xs text-muted-foreground">{donation.distance} away</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2"></div>
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">
                           Scheduled: {new Date(donation.pickupDate || new Date()).toLocaleDateString()} - {donation.pickupTime || 'Not specified'}
@@ -752,6 +797,7 @@ function NgoDashboard() {
                         <Progress value={donation.progress} />
                       </div>
                     </CardContent>
+
                     <CardFooter className="flex gap-4">
                       <Button 
                         className="flex-1" 
@@ -855,20 +901,20 @@ function NgoDashboard() {
                         <CardTitle>DON-{donation._id.slice(-4)}</CardTitle>
                         <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Rejected</span>
                       </div>
-                      <CardDescription>Rejected on {new Date(donation.date || donation.createdAt || new Date()).toLocaleDateString()}</CardDescription>
+                      <CardDescription>Rejected on {new Date(donation.createdAt || new Date()).toLocaleDateString()}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div>
                         <p className="text-sm font-medium mb-1">Donor:</p>
-                        <p className="text-sm">{donation.donor}</p>
+                        <p className="text-sm">{donation.user?.firstName} {donation.user?.lastName}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium mb-1">Items:</p>
                         <div className="flex flex-wrap gap-2">
                           {donation.items.map((item, i) => (
                             <span key={i} className="bg-muted text-xs px-2 py-1 rounded-full">
-                              {typeof item === 'object' ? item.itemName || 'Item' : item}
-                              {typeof item === 'object' && item.quantity && ` (${item.quantity})`}
+                              {item.itemName || 'Item'}
+                              {item.quantity && ` (${item.quantity})`}
                             </span>
                           ))}
                         </div>
@@ -876,19 +922,9 @@ function NgoDashboard() {
                       <div className="flex items-start gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
-                          <p className="text-sm">{donation.location}</p>
-                          <p className="text-xs text-muted-foreground">{donation.distance} away</p>
+                          <p className="text-sm">{donation.pickupAddress}</p>
                         </div>
                       </div>
-                      {donation.rejectionReason && (
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
-                          <div>
-                            <p className="text-sm font-medium">Reason for Rejection:</p>
-                            <p className="text-sm">{donation.rejectionReason}</p>
-                          </div>
-                        </div>
-                      )}
                     </CardContent>
                     <CardFooter className="flex gap-4">
                       <Button variant="outline" className="flex-1">
@@ -1020,7 +1056,7 @@ function NgoDashboard() {
                           <div className="space-y-2">
                             <p className="text-sm font-medium">Images:</p>
                             <div className="grid grid-cols-1 gap-4">
-                              {item.images.map((image: ImageData, imgIndex: number) => (
+                              {item.images.map((image, imgIndex) => (
                                 <div key={imgIndex} className="space-y-2">
                                   <div className="relative aspect-video rounded-md overflow-hidden border">
                                     <img 
