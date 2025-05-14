@@ -134,8 +134,8 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2 font-bold">
-            <Gift className="h-6 w-6 text-primary animate-bounce" />
-            <span className="animate-bounce">DonateConnect</span>
+            <Gift className="h-6 w-6 text-primary" />
+            <span>DonateConnect</span>
           </div>
           
           {/* Mobile menu button */}
@@ -215,7 +215,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-4">
             <button
               onClick={toggleDarkMode}
-              className="animate-bounce p-2 rounded-full border dark:border-border hover:bg-muted/80 dark:hover:bg-muted/20 transition-colors"
+              className="p-2 rounded-full border dark:border-border hover:bg-muted/80 dark:hover:bg-muted/20 transition-colors"
               aria-label="Toggle Dark Mode"
             >
               {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
