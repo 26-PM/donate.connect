@@ -32,11 +32,7 @@ export default function NGOsPage() {
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
   const [showNearMe, setShowNearMe] = useState(false)
   const [locationLoading, setLocationLoading] = useState(false)
-
-  const categories = [
-    "all", "Education", "Healthcare", "Environment", "Social Services",
-    "Children", "Elderly Care", "Disability Support", "Sustainability"
-  ]
+  const [availableCategories, setAvailableCategories] = useState<string[]>(["all"])
 
   // Sample NGO images - in production, these would come from your backend
   const ngoImages = [
@@ -50,6 +46,31 @@ export default function NGOsPage() {
 
   // Fallback image in case of loading errors
   const fallbackImage = "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=2070"
+
+  // Add interface for NGO data
+  interface NGOData {
+    _id: string;
+    name: string;
+    categories?: string[];
+    address?: {
+      streetNumber?: string;
+      landmark?: string;
+      city?: string;
+      state?: string;
+      country?: string;
+      pincode?: string;
+    };
+    itemsAccepted?: string[];
+    rating?: number;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  }
+
+  interface APIResponse {
+    data: NGOData[];
+  }
 
   // Function to calculate distance between two coordinates using Haversine formula
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -104,22 +125,34 @@ export default function NGOsPage() {
     const fetchNgos = async () => {
       setLoading(true)
       try {
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/ngos`)
-        // // Add random images to each NGO
-        const ngosWithImages = (res.data.data || []).map((ngo: any, index: number) => ({
+        const res = await axios.get<APIResponse>(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/ngos`)
+        // Add random images to each NGO
+        const ngosWithImages = (res.data.data || []).map((ngo: NGOData, index: number) => ({
           ...ngo,
           imageUrl: ngoImages[index % ngoImages.length] || fallbackImage,
           coordinates: ngo.coordinates || {
             lat: 40.7128 + (Math.random() * 2 - 1),
             lng: -74.0060 + (Math.random() * 2 - 1)
           },
-          location: `${ngo.address.streetNumber},${ngo.address.landmark},${ngo.address.city},${ngo.address.state},${ngo.address.country},${ngo.address.pincode} ` || "Unknown location",
+          location: `${ngo.address?.streetNumber},${ngo.address?.landmark},${ngo.address?.city},${ngo.address?.state},${ngo.address?.country},${ngo.address?.pincode} ` || "Unknown location",
           needs: ngo.itemsAccepted || [],
           rating: ngo.rating
         }))
         
         setNgos(ngosWithImages)
-        console.log(ngosWithImages)
+        
+        console.log('NGO objects:', ngosWithImages)
+        // Extract unique needs from NGOs for the category dropdown
+        const allNeeds = ngosWithImages.flatMap(ngo => ngo.needs || [])
+        console.log('All needs found:', allNeeds)
+        
+        const uniqueNeeds = Array.from(new Set(allNeeds))
+          .filter(need => need && typeof need === 'string')
+          .sort()
+        
+        console.log('Unique needs:', uniqueNeeds)
+        
+        setAvailableCategories(["all", ...uniqueNeeds])
       } catch (err) {
         console.error("Failed to fetch NGOs:", err)
       } finally {
@@ -133,7 +166,7 @@ export default function NGOsPage() {
   const filteredNgos = ngos.filter(ngo => {
     const matchesSearch = ngo.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           ngo.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = category === "all" || ngo.categories?.includes(category);
+    const matchesCategory = category === "all" || ngo.needs?.includes(category);
     return matchesSearch && matchesCategory;
   });
 
@@ -196,7 +229,7 @@ export default function NGOsPage() {
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((cat) => (
+                {availableCategories.map((cat) => (
                   <SelectItem key={cat} value={cat}>
                     {cat === "all" ? "All Categories" : cat}
                   </SelectItem>
@@ -208,13 +241,7 @@ export default function NGOsPage() {
               onValueChange={setSortBy}
               disabled={showNearMe}
             >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="rating">Highest Rated</SelectItem>
-                <SelectItem value="name">Name (A-Z)</SelectItem>
-              </SelectContent>
+             
             </Select>
             <Button 
               variant="outline" 
