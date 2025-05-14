@@ -18,6 +18,22 @@ interface DecodedToken {
   exp: number;
 }
 
+interface Feedback {
+  ngo?: {
+    name: string;
+  };
+  rating: number;
+  ease: number;
+  pickup: string;
+  pickupComment?: string;
+  recommend: string;
+  improvement: string;
+  createdAt: string;
+  donor?: {
+    name: string;
+  };
+}
+
 export default function LandingPage() {
   type Testimonial = { id: number; text: string; author: string };
 
@@ -26,6 +42,7 @@ export default function LandingPage() {
   const [showRealTestimonials, setShowRealTestimonials] = useState(false);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -74,7 +91,6 @@ export default function LandingPage() {
   }, [router]);
 
   const { ngoId } = useParams(); // gets the ngoId from the route (e.g., /testimonial/ngo/123)
-  const [feedbacks, setFeedbacks] = useState([]);
 
   useEffect(() => {
     fetch("http://localhost:8080/api/feedback")
