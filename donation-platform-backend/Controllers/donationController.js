@@ -281,7 +281,7 @@ const getNgoDonations = async (req, res) => {
     console.log('Fetching donations for NGO:', ngoId);
 
     const donations = await Donation.find({ ngo: ngoId })
-      .populate('user', 'firstName lastName email')
+      .populate('user', 'firstName lastName email mobile')
       .sort({ createdAt: -1 });
 
     console.log('Donations found:', donations);
