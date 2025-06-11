@@ -553,7 +553,17 @@ export default function LandingPage() {
           </div>
           <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
             <p>© {new Date().getFullYear()} DonateConnect. All rights reserved.</p>
-            <p>Made with ❤️ by PM and MA</p>
+            <p>
+              Made with ❤️ by PM |{' '}
+              <a
+                href="https://github.com/26-PM"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-primary"
+              >
+                GitHub
+              </a>
+            </p>
           </div>
         </div>
       </footer>
